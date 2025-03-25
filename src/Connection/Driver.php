@@ -1,7 +1,9 @@
 <?php
 namespace Gt\Database\Connection;
 
+use Gt\Database\DatabaseException;
 use PDO;
+use PDOException;
 
 class Driver {
 	/** @noinspection PhpUnused */
@@ -54,12 +56,33 @@ class Driver {
 			$options[PDO::MYSQL_ATTR_LOCAL_INFILE] = true;
 		}
 
-		$this->connection = new Connection(
-			$this->settings->getConnectionString(),
-			$this->settings->getUsername(),
-			$this->settings->getPassword(),
-			$options
-		);
+		try {
+			$this->connection = new Connection(
+				$this->settings->getConnectionString(),
+				$this->settings->getUsername(),
+				$this->settings->getPassword(),
+				$options
+			);
+		}
+		catch(PDOException $exception) {
+			$message = $exception->getMessage();
+			$code = $exception->getCode();
+
+			if(preg_match("/^SQL(.+)\[[^]]+\] \[\d+\] (?P<MSG_PART>.+)/", $message, $matches)) {
+				$message = $matches["MSG_PART"];
+			}
+
+			if($code === 2002) {
+				$message = "Could not connect to database - is the "
+					. $this->settings->getDriver()
+					. " server running at "
+					. $this->settings->getHost()
+					. " on port "
+					. $this->settings->getPort() . "?";
+			}
+
+			throw new DatabaseException($message, $code, $exception);
+		}
 
 		if($initQuery = $this->settings->getInitQuery()) {
 			foreach(explode(";", $initQuery) as $q) {
