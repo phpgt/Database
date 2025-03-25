@@ -13,7 +13,7 @@ use Gt\Database\StatementExecutionException;
 use Gt\Database\StatementPreparationException;
 
 class ExecuteCommand extends Command {
-	public function run(ArgumentValueList $arguments = null):void {
+	public function run(?ArgumentValueList $arguments = null):void {
 		$forced = $arguments->contains("force");
 
 		$repoBasePath = getcwd();

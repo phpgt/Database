@@ -33,7 +33,7 @@ class Settings implements SettingsInterface {
 		string $driver,
 		?string $schema = null,
 		string $host = DefaultSettings::DEFAULT_HOST,
-		int $port = null,
+		?int $port = null,
 		string $username = DefaultSettings::DEFAULT_USERNAME,
 		string $password = DefaultSettings::DEFAULT_PASSWORD,
 		string $connectionName = DefaultSettings::DEFAULT_NAME,

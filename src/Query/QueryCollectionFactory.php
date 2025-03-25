@@ -63,7 +63,7 @@ class QueryCollectionFactory {
 	/** @param array<string> $parts */
 	protected function recurseLocateDirectory(
 		array $parts,
-		string $basePath = null
+		?string $basePath = null
 	):?string {
 		$part = array_shift($parts);
 		if(is_null($basePath)) {

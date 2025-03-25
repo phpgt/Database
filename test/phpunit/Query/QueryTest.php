@@ -47,7 +47,7 @@ class QueryTest extends TestCase {
 
 		$mysqlSettings = new Settings(
 			$queryCollectionPath,
-			Settings::DRIVER_MYSQL,
+			"CodyDB",
 			"DoesNotExist" . uniqid(),
 			$host,
 			$port,
@@ -55,7 +55,7 @@ class QueryTest extends TestCase {
 			"dev_pass",
 		);
 		self::expectException(DatabaseException::class);
-		self::expectExceptionMessage("Could not connect to database - is the mysql server running at $host on port $port?");
+		self::expectExceptionMessage("Could not find driver for CodyDB - please ensure you have the package installed");
 		new SqlQuery($queryPath, new Driver($mysqlSettings));
 	}
 }

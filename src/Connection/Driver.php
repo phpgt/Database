@@ -48,7 +48,8 @@ class Driver {
 			PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
 		];
 
-		if($this->settings->getDriver() === Settings::DRIVER_MYSQL) {
+		if($this->settings->getDriver() === Settings::DRIVER_MYSQL
+		&& defined("PDO::MYSQL_ATTR_INIT_COMMAND")) {
 			$options[PDO::MYSQL_ATTR_INIT_COMMAND]
 				= "SET SESSION collation_connection='"
 				. $this->settings->getCollation()
@@ -79,6 +80,13 @@ class Driver {
 					. $this->settings->getHost()
 					. " on port "
 					. $this->settings->getPort() . "?";
+			}
+			elseif($code === 0) {
+				if($message = "could not find driver") {
+					$message = "Could not find driver for "
+						. $this->settings->getDriver()
+						. " - please ensure you have the package installed";
+				}
 			}
 
 			throw new DatabaseException($message, $code, $exception);
