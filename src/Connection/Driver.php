@@ -48,7 +48,8 @@ class Driver {
 			PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
 		];
 
-		if($this->settings->getDriver() === Settings::DRIVER_MYSQL) {
+		if($this->settings->getDriver() === Settings::DRIVER_MYSQL
+		&& defined("PDO::MYSQL_ATTR_INIT_COMMAND")) {
 			$options[PDO::MYSQL_ATTR_INIT_COMMAND]
 				= "SET SESSION collation_connection='"
 				. $this->settings->getCollation()
