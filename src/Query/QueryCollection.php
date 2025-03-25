@@ -14,7 +14,7 @@ class QueryCollection {
 	public function __construct(
 		string $directoryPath,
 		Driver $driver,
-		QueryFactory $queryFactory = null
+		?QueryFactory $queryFactory = null
 	) {
 		$this->directoryPath = $directoryPath;
 		$this->queryFactory = $queryFactory ?? new QueryFactory(

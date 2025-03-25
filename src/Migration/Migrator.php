@@ -51,7 +51,7 @@ class Migrator {
 
 	public function setOutput(
 		SplFileObject $out,
-		SplFileObject $error = null
+		?SplFileObject $error = null
 	):void {
 		$this->streamOut = $out;
 		$this->streamError = $error;
@@ -144,7 +144,7 @@ class Migrator {
 	/** @param array<string> $migrationFileList */
 	public function checkIntegrity(
 		array $migrationFileList,
-		int $migrationCount = null
+		?int $migrationCount = null
 	):int {
 		$fileNumber = 0;
 
