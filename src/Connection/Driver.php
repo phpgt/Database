@@ -82,7 +82,7 @@ class Driver {
 					. $this->settings->getPort() . "?";
 			}
 			elseif($code === 0) {
-				if($message = "could not find driver") {
+				if($message === "could not find driver") {
 					$message = "Could not find driver for "
 						. $this->settings->getDriver()
 						. " - please ensure you have the package installed";
