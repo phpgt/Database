@@ -3,8 +3,10 @@ namespace Gt\Database\Test\Query;
 
 use Gt\Database\Connection\DefaultSettings;
 use Gt\Database\Connection\Driver;
+use Gt\Database\Query\PhpQuery;
 use Gt\Database\Query\Query;
 use Gt\Database\Query\QueryCollection;
+use Gt\Database\Query\QueryCollectionClass;
 use Gt\Database\Query\QueryCollectionDirectory;
 use Gt\Database\Query\QueryFactory;
 use Gt\Database\Result\ResultSet;
@@ -83,5 +85,31 @@ class QueryCollectionTest extends TestCase {
 			ResultSet::class,
 			$this->queryCollection->something()
 		);
+	}
+
+	public function testQueryCollectionClass() {
+		$projectDir = implode(DIRECTORY_SEPARATOR, [
+			sys_get_temp_dir(),
+			"phpgt",
+			"database",
+			uniqid(),
+		]);
+		$baseQueryDirectory = implode(DIRECTORY_SEPARATOR, [
+			$projectDir,
+			"query",
+		]);
+		$queryCollectionClassPath = "$baseQueryDirectory/Example.php";
+		if(!is_dir($baseQueryDirectory)) {
+			mkdir($baseQueryDirectory, recursive: true);
+		}
+		touch($queryCollectionClassPath);
+
+		$sut = new QueryCollectionClass(
+			$queryCollectionClassPath,
+			new Driver(new DefaultSettings()),
+		);
+
+		$query = $sut->query("getTimestamp");
+		self::assertInstanceOf(PhpQuery::class, $query);
 	}
 }
