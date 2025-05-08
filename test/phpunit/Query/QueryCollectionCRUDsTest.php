@@ -5,6 +5,7 @@ use Gt\Database\Connection\DefaultSettings;
 use Gt\Database\Connection\Driver;
 use Gt\Database\Query\Query;
 use Gt\Database\Query\QueryCollection;
+use Gt\Database\Query\QueryCollectionDirectory;
 use Gt\Database\Query\QueryFactory;
 use Gt\Database\Result\ResultSet;
 use Gt\Database\Result\Row;
@@ -27,7 +28,7 @@ class QueryCollectionCRUDsTest extends TestCase {
 			->willReturn($this->mockQuery);
 
 		/** @var QueryFactory $mockQueryFactory */
-		$this->queryCollection = new QueryCollection(
+		$this->queryCollection = new QueryCollectionDirectory(
 			__DIR__,
 			new Driver(new DefaultSettings()),
 			$mockQueryFactory

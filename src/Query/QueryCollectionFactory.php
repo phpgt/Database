@@ -4,6 +4,7 @@ namespace Gt\Database\Query;
 use DirectoryIterator;
 use Gt\Database\Connection\Driver;
 use Gt\Database\Database;
+use SplFileInfo;
 
 class QueryCollectionFactory {
 	protected Driver $driver;
@@ -19,15 +20,9 @@ class QueryCollectionFactory {
 
 	public function create(string $name):QueryCollection {
 		if(!isset($this->queryCollectionCache[$name])) {
-			$directoryPath = $this->locateDirectory($name);
-
-			if(is_null($directoryPath)) {
-				throw new QueryCollectionNotFoundException($name);
-			}
-
-			$this->queryCollectionCache[$name] = new QueryCollection(
-				$directoryPath,
-				$this->driver
+			$this->queryCollectionCache[$name] = $this->findQueryCollection(
+				$name,
+				$this->driver,
 			);
 		}
 
@@ -74,13 +69,13 @@ class QueryCollectionFactory {
 			throw new BaseQueryPathDoesNotExistException($basePath);
 		}
 
+		/** @var SplFileInfo $fileInfo */
 		foreach(new DirectoryIterator($basePath) as $fileInfo) {
-			if($fileInfo->isDot()
-			|| !$fileInfo->isDir()) {
+			if($fileInfo->isDot()) {
 				continue;
 			}
 
-			$basename = $fileInfo->getBasename();
+			$basename = $fileInfo->getBasename(".php");
 			if(strtolower($part) === strtolower($basename)) {
 				$realPath = $fileInfo->getRealPath();
 
@@ -101,4 +96,30 @@ class QueryCollectionFactory {
 	protected function getDefaultBasePath():string {
 		return getcwd();
 	}
+
+	private function findQueryCollection(
+		string $name,
+		Driver $driver,
+	):QueryCollection {
+		$path = $this->locateDirectory($name);
+
+		if($path && is_dir($path)) {
+			$this->queryCollectionCache[$name] = new QueryCollectionDirectory(
+				$path,
+				$driver,
+			);
+		}
+		elseif($path && is_file($path)) {
+			$this->queryCollectionCache[$name] = new QueryCollectionClass(
+				$path,
+				$driver,
+			);
+		}
+		else {
+			throw new QueryCollectionNotFoundException($name);
+		}
+
+		return $this->queryCollectionCache[$name];
+	}
+
 }

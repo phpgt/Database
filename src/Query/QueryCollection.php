@@ -5,7 +5,7 @@ use Gt\Database\Connection\Driver;
 use Gt\Database\Fetchable;
 use Gt\Database\Result\ResultSet;
 
-class QueryCollection {
+abstract class QueryCollection {
 	use Fetchable;
 
 	protected string $directoryPath;
@@ -14,7 +14,7 @@ class QueryCollection {
 	public function __construct(
 		string $directoryPath,
 		Driver $driver,
-		?QueryFactory $queryFactory = null
+		?QueryFactory $queryFactory = null,
 	) {
 		$this->directoryPath = $directoryPath;
 		$this->queryFactory = $queryFactory ?? new QueryFactory(
