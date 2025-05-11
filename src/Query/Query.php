@@ -17,8 +17,7 @@ abstract class Query {
 
 	protected string $filePath;
 	protected Connection $connection;
-
-
+	protected ?string $namespace = null;
 
 	public function getFilePath():string {
 		return $this->filePath;

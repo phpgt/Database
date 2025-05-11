@@ -10,6 +10,7 @@ abstract class QueryCollection {
 
 	protected string $directoryPath;
 	protected QueryFactory $queryFactory;
+	protected string $appNamespace = "\\App\\Query";
 
 	public function __construct(
 		string $directoryPath,
@@ -21,6 +22,14 @@ abstract class QueryCollection {
 			$directoryPath,
 			$driver
 		);
+	}
+
+	public function setAppNamespace(string $namespace):void {
+		if(!str_starts_with($namespace, "\\")) {
+			$namespace = "\\$namespace";
+		}
+
+		$this->appNamespace = $namespace;
 	}
 
 	/** @param array<mixed> $args */
@@ -40,6 +49,10 @@ abstract class QueryCollection {
 		mixed...$placeholderMap
 	):ResultSet {
 		$query = $this->queryFactory->create($name);
+		if($query instanceof PhpQuery) {
+			$query->setAppNamespace($this->appNamespace);
+		}
+
 		return $query->execute($placeholderMap);
 	}
 
