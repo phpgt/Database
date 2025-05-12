@@ -5,22 +5,31 @@ use Gt\Database\Connection\Driver;
 use Gt\Database\Fetchable;
 use Gt\Database\Result\ResultSet;
 
-class QueryCollection {
+abstract class QueryCollection {
 	use Fetchable;
 
 	protected string $directoryPath;
 	protected QueryFactory $queryFactory;
+	protected string $appNamespace = "\\App\\Query";
 
 	public function __construct(
 		string $directoryPath,
 		Driver $driver,
-		?QueryFactory $queryFactory = null
+		?QueryFactory $queryFactory = null,
 	) {
 		$this->directoryPath = $directoryPath;
 		$this->queryFactory = $queryFactory ?? new QueryFactory(
 			$directoryPath,
 			$driver
 		);
+	}
+
+	public function setAppNamespace(string $namespace):void {
+		if(!str_starts_with($namespace, "\\")) {
+			$namespace = "\\$namespace";
+		}
+
+		$this->appNamespace = $namespace;
 	}
 
 	/** @param array<mixed> $args */
@@ -40,6 +49,10 @@ class QueryCollection {
 		mixed...$placeholderMap
 	):ResultSet {
 		$query = $this->queryFactory->create($name);
+		if($query instanceof PhpQuery) {
+			$query->setAppNamespace($this->appNamespace);
+		}
+
 		return $query->execute($placeholderMap);
 	}
 

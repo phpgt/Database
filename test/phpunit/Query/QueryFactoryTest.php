@@ -3,6 +3,7 @@ namespace Gt\Database\Test\Query;
 
 use Gt\Database\Connection\DefaultSettings;
 use Gt\Database\Connection\Driver;
+use Gt\Database\Query\PhpQuery;
 use Gt\Database\Query\Query;
 use Gt\Database\Query\QueryFactory;
 use Gt\Database\Query\QueryFileExtensionException;
@@ -91,5 +92,21 @@ class QueryFactoryTest extends TestCase {
 			static::assertNotContains($query->getFilePath(), $queryFileList);
 			$queryFileList[$queryName] = $query->getFilePath();
 		}
+	}
+
+	/** @dataProvider \Gt\Database\Test\Helper\Helper::queryPathNotExistsProvider */
+	public function testCreatePhp(
+		string $queryName,
+		string $directoryOfQueries,
+	) {
+		$classPath = "$directoryOfQueries.php";
+		if(!is_dir($directoryOfQueries)) {
+			mkdir($directoryOfQueries, recursive: true);
+		}
+		touch($classPath);
+
+		$sut = new QueryFactory($classPath, new Driver(new DefaultSettings()));
+		$query = $sut->create("getTimestamp");
+		self::assertInstanceOf(PhpQuery::class, $query);
 	}
 }
