@@ -9,6 +9,10 @@ use PDOException;
 use PDOStatement;
 use PHPSQLParser\lexer\PHPSQLLexer;
 
+
+/**
+ * @SuppressWarnings(PHPMD.ExcessiveClassComplexity)
+ */
 abstract class Query {
 	const SPECIAL_BINDINGS = [
 		"field" => ["groupBy", "orderBy"],
