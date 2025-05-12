@@ -69,7 +69,6 @@ class QueryCollectionFactory {
 			throw new BaseQueryPathDoesNotExistException($basePath);
 		}
 
-		/** @var SplFileInfo $fileInfo */
 		foreach(new DirectoryIterator($basePath) as $fileInfo) {
 			if($fileInfo->isDot()) {
 				continue;
