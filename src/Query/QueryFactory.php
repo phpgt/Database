@@ -11,31 +11,36 @@ use Gt\Database\Connection\ConnectionNotConfiguredException;
 class QueryFactory {
 	const CLASS_FOR_EXTENSION = [
 		"sql" => SqlQuery::class,
-		"php" => "NOT_YET_IMPLEMENTED",
+		"php" => PhpQuery::class,
 	];
 
 	public function __construct(
-		protected string $directoryOfQueries,
+		protected string $queryHolder,
 		protected Driver $driver
 	) {}
 
 	public function findQueryFilePath(string $name):string {
-		foreach(new DirectoryIterator($this->directoryOfQueries) as $fileInfo) {
-			if($fileInfo->isDot()
-			|| $fileInfo->isDir()) {
-				continue;
-			}
+		if(is_dir($this->queryHolder)) {
+			foreach(new DirectoryIterator($this->queryHolder) as $fileInfo) {
+				if($fileInfo->isDot()
+					|| $fileInfo->isDir()) {
+					continue;
+				}
 
-			$this->getExtensionIfValid($fileInfo);
-			$fileNameNoExtension = strtok($fileInfo->getFilename(), ".");
-			if($fileNameNoExtension !== $name) {
-				continue;
-			}
+				$this->getExtensionIfValid($fileInfo);
+				$fileNameNoExtension = strtok($fileInfo->getFilename(), ".");
+				if($fileNameNoExtension !== $name) {
+					continue;
+				}
 
-			return $fileInfo->getRealPath();
+				return $fileInfo->getRealPath();
+			}
+		}
+		elseif(is_file($this->queryHolder)) {
+			return "$this->queryHolder::$name";
 		}
 
-		throw new QueryNotFoundException($this->directoryOfQueries . ", " . $name);
+		throw new QueryNotFoundException($this->queryHolder . ", " . $name);
 	}
 
 	public function create(string $name):Query {
@@ -62,6 +67,7 @@ class QueryFactory {
 
 	protected function getExtensionIfValid(SplFileInfo $fileInfo):string {
 		$ext = strtolower($fileInfo->getExtension());
+		$ext = strstr($ext, ":", true) ?: $ext;
 
 		if(!array_key_exists($ext, self::CLASS_FOR_EXTENSION)) {
 			throw new QueryFileExtensionException($ext);

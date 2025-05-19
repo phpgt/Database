@@ -141,7 +141,11 @@ class Helper {
 			$nameParts = [];
 
 			for($n = 0; $n < $nested; $n++) {
-				$nameParts []= uniqid();
+				$uniqid = uniqid();
+				if(is_numeric($uniqid[0])) {
+					$uniqid = chr(rand(97, 102)) . $uniqid; // Add a random lowercase letter (a-f) to the beginning
+				}
+				$nameParts []= $uniqid;
 			}
 
 			$name = implode(DIRECTORY_SEPARATOR, $nameParts);

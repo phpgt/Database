@@ -25,6 +25,7 @@ class Database {
 	/** @var array<Driver> */
 	protected array $driverArray;
 	protected Connection $currentConnectionName;
+	protected string $appNamespace = "\\App";
 
 	public function __construct(SettingsInterface...$connectionSettings) {
 		if(empty($connectionSettings)) {
@@ -34,6 +35,14 @@ class Database {
 
 		$this->storeConnectionDriverFromSettings($connectionSettings);
 		$this->storeQueryCollectionFactoryFromSettings($connectionSettings);
+	}
+
+	public function setAppNameSpace(string $namespace):void {
+		if(!str_starts_with($namespace, "\\")) {
+			$namespace = "\\$namespace";
+		}
+
+		$this->appNamespace = $namespace;
 	}
 
 	public function insert(string $queryName, mixed...$bindings):string {
