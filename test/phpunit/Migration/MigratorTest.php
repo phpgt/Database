@@ -659,7 +659,10 @@ class MigratorTest extends TestCase {
 		if($missingFiles) {
 			$numToRemove = rand(1, (int)($migLength / 10));
 			for($i = 0; $i < $numToRemove; $i++) {
-				$keyToRemove = array_rand($fileList);
+				do {
+					$keyToRemove = array_rand($fileList);
+				}
+				while($keyToRemove === array_key_last($fileList));
 				unset($fileList[$keyToRemove]);
 			}
 		}
