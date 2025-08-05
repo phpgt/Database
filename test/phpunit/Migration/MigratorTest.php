@@ -280,6 +280,58 @@ class MigratorTest extends TestCase {
 	}
 
 	/**
+	 * This test needs an explanation because it's not immediately obvious.
+	 * The fileList is generated as usual, but then to simulate a real
+	 * production "messy" codebase, a new migration file is created with a
+	 * much higher sequence (15 higher than the last in the fileList).
+	 *
+	 * Because of this, the migration will fail. However, we reset the
+	 * migration sequence before performing the migration, and even though
+	 * none of the files in fileList are migrated yet, we should only see
+	 * 1 migration take place.
+	 *
+	 * @dataProvider dataMigrationFileList
+	 */
+	public function testResetMigration(array $fileList) {
+		$path = $this->getMigrationDirectory();
+		$this->createMigrationFiles($fileList, $path);
+		$settings = $this->createSettings($path);
+
+		$migrator = new Migrator(
+			$settings,
+			$path,
+			"_migration",
+		);
+
+		$newNumber = count($fileList) + 15;
+
+		$newFileName = str_pad($newNumber, 4, "0", STR_PAD_LEFT);
+		$newFileName .= "-" . uniqid() . ".sql";
+		$newFilePath = implode(DIRECTORY_SEPARATOR, [
+			$path,
+			$newFileName,
+		]);
+		array_push($fileList, $newFileName);
+
+		$absoluteFileList = array_map(function($file)use($path) {
+			return implode(DIRECTORY_SEPARATOR, [
+				$path,
+				$file,
+			]);
+		},$fileList);
+
+		$lastKey = array_key_last($absoluteFileList);
+		file_put_contents($absoluteFileList[$lastKey], "create table migrated_out_of_order ( id int primary key )");
+
+		$migrator->createMigrationTable();
+		$migrator->resetMigrationSequence($newNumber - 1);
+		$migrationCount = $migrator->getMigrationCount();
+		$migrator->checkIntegrity($absoluteFileList, $migrationCount);
+		$migrationsExecuted = $migrator->performMigration($absoluteFileList, $migrationCount);
+		self::assertSame(1, $migrationsExecuted);
+	}
+
+	/**
 	 * @dataProvider dataMigrationFileList
 	 * @runInSeparateProcess
 	 */

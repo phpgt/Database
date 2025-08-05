@@ -57,9 +57,19 @@ class ExecuteCommand extends Command {
 		$migrationCount = $migrator->getMigrationCount();
 		$migrationFileList = $migrator->getMigrationFileList();
 
+		$resetNumber = null;
+		if($arguments->contains("reset")) {
+			$resetNumber = $arguments->get("reset")->get();
+			if(!$resetNumber) {
+				$lastKey = array_key_last($migrationFileList);
+				$resetNumber = $migrator->extractNumberFromFilename($migrationFileList[$lastKey]);
+			}
+			$resetNumber = (int)$resetNumber;
+		}
+
 		try {
-			$migrator->checkIntegrity($migrationFileList, $migrationCount);
-			$migrator->performMigration($migrationFileList, $migrationCount);
+			$migrator->checkIntegrity($migrationFileList, $resetNumber ?? $migrationCount);
+			$migrator->performMigration($migrationFileList, $resetNumber ?? $migrationCount);
 		}
 		catch(MigrationIntegrityException $exception) {
 			$this->writeLine(
@@ -106,6 +116,12 @@ class ExecuteCommand extends Command {
 				"force",
 				"f",
 				"Forcefully drop the current schema and run from migration 1"
+			),
+			new Parameter(
+				true,
+				"reset",
+				"r",
+				"Reset the integrity checks to a specific migration number"
 			)
 		];
 	}
