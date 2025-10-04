@@ -125,19 +125,23 @@ class Migrator {
 
 	/** @param array<string> $fileList */
 	public function checkFileListOrder(array $fileList):void {
-		$counter = 0;
+		$previousNumber = null;
 		$sequence = [];
 
 		foreach($fileList as $file) {
-			$counter++;
 			$migrationNumber = $this->extractNumberFromFilename($file);
 			$sequence []= $migrationNumber;
 
-			if($counter !== $migrationNumber) {
-				throw new MigrationSequenceOrderException(
-					"Missing: $counter"
-				);
+			if(!is_null($previousNumber)) {
+				if($migrationNumber === $previousNumber) {
+					throw new MigrationSequenceOrderException("Duplicate: $migrationNumber");
+				}
+				if($migrationNumber < $previousNumber) {
+					throw new MigrationSequenceOrderException("Out of order: $migrationNumber before $previousNumber");
+				}
 			}
+
+			$previousNumber = $migrationNumber;
 		}
 	}
 

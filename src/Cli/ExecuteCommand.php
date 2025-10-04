@@ -65,7 +65,10 @@ class ExecuteCommand extends Command {
 			$resetNumber = $arguments->get("reset")->get();
 			if(!$resetNumber) {
 				$lastKey = array_key_last($migrationFileList);
-				$resetNumber = $migrator->extractNumberFromFilename($migrationFileList[$lastKey]);
+				$lastNumber = $migrator->extractNumberFromFilename($migrationFileList[$lastKey]);
+				// When no number provided, execute only the latest migration by
+				// setting the reset point to one less than the latest number.
+				$resetNumber = max(0, $lastNumber - 1);
 			}
 			$resetNumber = (int)$resetNumber;
 		}
