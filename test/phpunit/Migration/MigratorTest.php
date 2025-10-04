@@ -279,6 +279,47 @@ class MigratorTest extends TestCase {
 		self::assertNull($exception,"Exception should not be thrown");
 	}
 
+	/** @dataProvider dataMigrationFileList */
+	public function testHashMismatchAfterEditingFirstFile(array $fileList) {
+		$path = $this->getMigrationDirectory();
+		$this->createMigrationFiles($fileList, $path);
+
+		$settings = $this->createSettings($path);
+		$migrator = new Migrator($settings, $path);
+		$absoluteFileList = array_map(function($file) use ($path) {
+			return implode(DIRECTORY_SEPARATOR, [
+				$path,
+				$file,
+			]);
+		}, $fileList);
+
+// Perform the initial full migration.
+		$migrator->createMigrationTable();
+		$migrator->performMigration($absoluteFileList);
+
+// Now change the contents of the first migration file to break integrity.
+		$firstFile = $absoluteFileList[0];
+		$originalSql = file_get_contents($firstFile);
+		file_put_contents($firstFile, $originalSql . "\n-- edited to break hash\n");
+
+// First, when providing the current migration count (skipping
+// already-migrated files), the integrity check should NOT throw an exception
+// because it skips the altered first file.
+		$exception = null;
+		$migrationCount = $migrator->getMigrationCount();
+		try {
+			$migrator->checkIntegrity($absoluteFileList, $migrationCount);
+		}
+		catch(Exception $exception) {}
+
+		self::assertNull($exception);
+
+// However, checking integrity with no migration count should fail due to a hash
+// mismatch in the first file.
+		self::expectException(MigrationIntegrityException::class);
+		$migrator->checkIntegrity($absoluteFileList);
+	}
+
 	/**
 	 * This test needs an explanation because it's not immediately obvious.
 	 * The fileList is generated as usual, but then to simulate a real

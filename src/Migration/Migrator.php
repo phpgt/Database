@@ -150,28 +150,26 @@ class Migrator {
 
 		foreach($migrationFileList as $i => $file) {
 			$fileNumber = $this->extractNumberFromFilename($file);
-			$md5 = md5_file($file);
 
-			if($migrationStartFrom) {
-				if($fileNumber < $migrationStartFrom) {
-					continue;
-				}
+			// If a start point is provided, skip files at or before that number
+			// and only verify files AFTER the provided migration count.
+			if(!is_null($migrationStartFrom) && $fileNumber <= $migrationStartFrom) {
+				continue;
 			}
 
-			if(is_null($migrationStartFrom)
-				|| $fileNumber <= $migrationStartFrom) {
-				$result = $this->dbClient->executeSql(implode("\n", [
-					"select `" . self::COLUMN_QUERY_HASH . "`",
-					"from `{$this->tableName}`",
-					"where `" . self::COLUMN_QUERY_NUMBER . "` = ?",
-					"limit 1",
-				]), [$fileNumber]);
+			$md5 = md5_file($file);
 
-				$hashInDb = ($result->fetch())?->getString(self::COLUMN_QUERY_HASH);
+			$result = $this->dbClient->executeSql(implode("\n", [
+				"select `" . self::COLUMN_QUERY_HASH . "`",
+				"from `{$this->tableName}`",
+				"where `" . self::COLUMN_QUERY_NUMBER . "` = ?",
+				"limit 1",
+			]), [$fileNumber]);
 
-				if($hashInDb && $hashInDb !== $md5) {
-					throw new MigrationIntegrityException($file);
-				}
+			$hashInDb = ($result->fetch())?->getString(self::COLUMN_QUERY_HASH);
+
+			if($hashInDb && $hashInDb !== $md5) {
+				throw new MigrationIntegrityException($file);
 			}
 		}
 

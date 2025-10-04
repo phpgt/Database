@@ -57,6 +57,9 @@ class ExecuteCommand extends Command {
 		$migrationCount = $migrator->getMigrationCount();
 		$migrationFileList = $migrator->getMigrationFileList();
 
+// TODO: Expected functionality is to provide a number to reset like --reset=15, OR leave it blank like --reset
+// If number is provided, ignore everything before this number.
+// If number is not provided, ignore everything other than the latest file in the directory.
 		$resetNumber = null;
 		if($arguments->contains("reset")) {
 			$resetNumber = $arguments->get("reset")->get();
