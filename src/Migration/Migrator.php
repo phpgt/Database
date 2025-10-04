@@ -151,8 +151,8 @@ class Migrator {
 		?int $migrationStartFrom = null
 	):int {
 		$fileNumber = 0;
-
-		foreach($migrationFileList as $i => $file) {
+		
+		foreach($migrationFileList as $file) {
 			$fileNumber = $this->extractNumberFromFilename($file);
 
 			// If a start point is provided, skip files at or before that number
@@ -199,8 +199,8 @@ class Migrator {
 	):int {
 		$fileNumber = 0;
 		$numCompleted = 0;
-
-		foreach($migrationFileList as $i => $file) {
+		
+		foreach($migrationFileList as $file) {
 			$fileNumber = $this->extractNumberFromFilename($file);
 
 			if($fileNumber <= $existingFileNumber) {
