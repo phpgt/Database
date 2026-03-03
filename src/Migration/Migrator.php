@@ -209,15 +209,15 @@ class Migrator {
 			$currentQuery = "";
 			foreach($lexer->split($totalSql) as $token) {
 				if($token === ";") {
-					array_push($splitSqlQueryList, $currentQuery);
+					array_push($splitSqlQueryList, trim($currentQuery));
 					$currentQuery = "";
 					continue;
 				}
 
 				$currentQuery .= $token;
 			}
-			if($currentQuery) {
-				array_push($splitSqlQueryList, $currentQuery);
+			if(trim($currentQuery)) {
+				array_push($splitSqlQueryList, trim($currentQuery));
 			}
 
 			try {
@@ -225,6 +225,11 @@ class Migrator {
 					$sql = trim($sql);
 					if(!$sql) {
 						continue;
+					}
+
+					$fname = pathinfo($file, PATHINFO_FILENAME);
+					if($fname === "070-application-renewCardId") {
+						echo "RUNNING:\n$sql\n\n";
 					}
 					$this->dbClient->executeSql($sql);
 				}
