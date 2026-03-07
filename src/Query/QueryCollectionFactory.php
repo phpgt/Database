@@ -27,7 +27,6 @@ class QueryCollectionFactory {
 		}
 
 		return $this->queryCollectionCache[$name];
-
 	}
 
 	public function directoryExists(string $name):bool {

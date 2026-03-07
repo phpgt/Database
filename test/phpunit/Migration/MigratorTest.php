@@ -114,8 +114,12 @@ class MigratorTest extends TestCase {
 		$settings = $this->createSettings($path);
 		$migrator = new Migrator($settings, $path);
 		$actualFileList = $migrator->getMigrationFileList();
-		self::expectException(MigrationSequenceOrderException::class);
-		$migrator->checkFileListOrder($actualFileList);
+		$exception = null;
+		try {
+			$migrator->checkFileListOrder($actualFileList);
+		}
+		catch (Exception $exception) {}
+		self::assertNull($exception, "No exception should be thrown for missing sequence numbers as long as order is increasing and non-duplicated");
 	}
 
 	/** @dataProvider dataMigrationFileListDuplicate */
@@ -128,6 +132,29 @@ class MigratorTest extends TestCase {
 		$actualFileList = $migrator->getMigrationFileList();
 		$this->expectException(MigrationSequenceOrderException::class);
 		$migrator->checkFileListOrder($actualFileList);
+	}
+
+	public function testCheckFileListOrderOutOfOrder():void {
+		$path = $this->getMigrationDirectory();
+		$files = [
+			str_pad(1, 4, "0", STR_PAD_LEFT) . "-" . uniqid() . ".sql",
+			str_pad(2, 4, "0", STR_PAD_LEFT) . "-" . uniqid() . ".sql",
+			str_pad(3, 4, "0", STR_PAD_LEFT) . "-" . uniqid() . ".sql",
+		];
+		$this->createFiles($files, $path);
+
+		$settings = $this->createSettings($path);
+		$migrator = new Migrator($settings, $path);
+
+		$absolute = array_map(function($f) use ($path) {
+			return implode(DIRECTORY_SEPARATOR, [$path, $f]);
+		}, $files);
+
+		// Pass files deliberately out of numeric order: 1, 3, 2
+		$outOfOrder = [$absolute[0], $absolute[2], $absolute[1]];
+
+		$this->expectException(MigrationSequenceOrderException::class);
+		$migrator->checkFileListOrder($outOfOrder);
 	}
 
 	/** @dataProvider dataMigrationFileList */
@@ -277,6 +304,99 @@ class MigratorTest extends TestCase {
 		catch(Exception $exception) {}
 
 		self::assertNull($exception,"Exception should not be thrown");
+	}
+
+	/** @dataProvider dataMigrationFileList */
+	public function testHashMismatchAfterEditingFirstFile(array $fileList) {
+		$path = $this->getMigrationDirectory();
+		$this->createMigrationFiles($fileList, $path);
+
+		$settings = $this->createSettings($path);
+		$migrator = new Migrator($settings, $path);
+		$absoluteFileList = array_map(function($file) use ($path) {
+			return implode(DIRECTORY_SEPARATOR, [
+				$path,
+				$file,
+			]);
+		}, $fileList);
+
+// Perform the initial full migration.
+		$migrator->createMigrationTable();
+		$migrator->performMigration($absoluteFileList);
+
+// Now change the contents of the first migration file to break integrity.
+		$firstFile = $absoluteFileList[0];
+		$originalSql = file_get_contents($firstFile);
+		file_put_contents($firstFile, $originalSql . "\n-- edited to break hash\n");
+
+// First, when providing the current migration count (skipping
+// already-migrated files), the integrity check should NOT throw an exception
+// because it skips the altered first file.
+		$exception = null;
+		$migrationCount = $migrator->getMigrationCount();
+		try {
+			$migrator->checkIntegrity($absoluteFileList, $migrationCount);
+		}
+		catch(Exception $exception) {}
+
+		self::assertNull($exception);
+
+// However, checking integrity with no migration count should fail due to a hash
+// mismatch in the first file.
+		self::expectException(MigrationIntegrityException::class);
+		$migrator->checkIntegrity($absoluteFileList);
+	}
+
+	/**
+	 * This test needs an explanation because it's not immediately obvious.
+	 * The fileList is generated as usual, but then to simulate a real
+	 * production "messy" codebase, a new migration file is created with a
+	 * much higher sequence (15 higher than the last in the fileList).
+	 *
+	 * Because of this, the migration will fail. However, we reset the
+	 * migration sequence before performing the migration, and even though
+	 * none of the files in fileList are migrated yet, we should only see
+	 * 1 migration take place.
+	 *
+	 * @dataProvider dataMigrationFileList
+	 */
+	public function testResetMigration(array $fileList) {
+		$path = $this->getMigrationDirectory();
+		$this->createMigrationFiles($fileList, $path);
+		$settings = $this->createSettings($path);
+
+		$migrator = new Migrator(
+			$settings,
+			$path,
+			"_migration",
+		);
+
+		$newNumber = count($fileList) + 15;
+
+		$newFileName = str_pad($newNumber, 4, "0", STR_PAD_LEFT);
+		$newFileName .= "-" . uniqid() . ".sql";
+		$newFilePath = implode(DIRECTORY_SEPARATOR, [
+			$path,
+			$newFileName,
+		]);
+		array_push($fileList, $newFileName);
+
+		$absoluteFileList = array_map(function($file)use($path) {
+			return implode(DIRECTORY_SEPARATOR, [
+				$path,
+				$file,
+			]);
+		},$fileList);
+
+		$lastKey = array_key_last($absoluteFileList);
+		file_put_contents($absoluteFileList[$lastKey], "create table migrated_out_of_order ( id int primary key )");
+
+		$migrator->createMigrationTable();
+		$migrator->resetMigrationSequence($newNumber - 1);
+		$migrationCount = $migrator->getMigrationCount();
+		$migrator->checkIntegrity($absoluteFileList, $migrationCount);
+		$migrationsExecuted = $migrator->performMigration($absoluteFileList, $migrationCount);
+		self::assertSame(1, $migrationsExecuted);
 	}
 
 	/**
@@ -699,6 +819,99 @@ class MigratorTest extends TestCase {
 			Settings::DRIVER_SQLITE,
 			$sqlitePath
 		);
+	}
+
+	/**
+	 * New tests for migrating from a specific file number and handling gaps
+	 */
+	/** @dataProvider dataMigrationFileList */
+	public function testPerformMigrationFromSpecificNumber(array $fileList) {
+		$path = $this->getMigrationDirectory();
+		$this->createMigrationFiles($fileList, $path);
+		$settings = $this->createSettings($path);
+		$migrator = new Migrator($settings, $path);
+
+		$absoluteFileList = array_map(function($file) use ($path) {
+			return implode(DIRECTORY_SEPARATOR, [ $path, $file ]);
+		}, $fileList);
+
+		$startNumber = $migrator->extractNumberFromFilename($absoluteFileList[0]);
+		$from = $startNumber - 1;
+
+		$migrator->createMigrationTable();
+		if($from >= 1) {
+			// Ensure base table exists when skipping the first migration
+			$db = new Database($settings);
+			$db->executeSql(self::MIGRATION_CREATE);
+		}
+
+		$streamOut = new SplFileObject("php://memory", "w");
+		$migrator->setOutput($streamOut);
+
+		$executed = $migrator->performMigration($absoluteFileList, $from);
+
+		$expected = 0;
+		foreach($absoluteFileList as $file) {
+			if($migrator->extractNumberFromFilename($file) >= $startNumber) {
+				$expected++;
+			}
+		}
+
+		$streamOut->rewind();
+		$output = $streamOut->fread(4096);
+		self::assertMatchesRegularExpression("/Migration\\s+{$startNumber}:/", $output);
+		self::assertStringContainsString("$expected migrations were completed successfully.", $output);
+		self::assertSame($expected, $executed);
+		self::assertSame($expected, $migrator->getMigrationCount());
+	}
+
+	/** @dataProvider dataMigrationFileListMissing */
+	public function testPerformMigrationFromSpecificNumberWithGaps(array $fileList) {
+		$path = $this->getMigrationDirectory();
+		$this->createMigrationFiles($fileList, $path);
+		$settings = $this->createSettings($path);
+		$migrator = new Migrator($settings, $path);
+
+		$absoluteFileList = array_map(function($file) use ($path) {
+			return implode(DIRECTORY_SEPARATOR, [ $path, $file ]);
+		}, $fileList);
+
+		// Build the list of actual migration numbers present (with gaps allowed)
+		$numbers = array_map(function($file) use ($migrator) {
+			return $migrator->extractNumberFromFilename($file);
+		}, $absoluteFileList);
+		sort($numbers);
+
+		// Pick a start number from the set (not the last one)
+		$startNumber = $numbers[(int)floor(count($numbers) / 2)];
+		$from = $startNumber - 1;
+
+		$migrator->createMigrationTable();
+		if($from >= 1) {
+			$db = new Database($settings);
+			$db->executeSql(self::MIGRATION_CREATE);
+		}
+
+		$streamOut = new SplFileObject("php://memory", "w");
+		$migrator->setOutput($streamOut);
+
+		$executed = $migrator->performMigration($absoluteFileList, $from);
+
+		$expected = 0;
+		foreach($numbers as $n) {
+			if($n >= $startNumber) {
+				$expected++;
+			}
+		}
+
+		$streamOut->rewind();
+		$output = $streamOut->fread(4096);
+		self::assertMatchesRegularExpression("/Migration\\s+{$startNumber}:/", $output);
+		for($n = 1; $n < $startNumber; $n++) {
+			self::assertStringNotContainsString("Migration $n:", $output);
+		}
+		self::assertStringContainsString("$expected migrations were completed successfully.", $output);
+		self::assertSame($expected, $executed);
 	}
 
 	protected function createFiles(array $files, string $path):void {
