@@ -119,29 +119,27 @@
         },
         {
             "name": "phpgt/cli",
-            "version": "v1.3.5",
+            "version": "v1.3.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/PhpGt/Cli.git",
-                "reference": "42aeef24ab9789907358002fdcc37cb3a2e26b4b"
+                "reference": "71deb9cdc5a3ea8bfb665faa29739badbf61e9da"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/PhpGt/Cli/zipball/42aeef24ab9789907358002fdcc37cb3a2e26b4b",
-                "reference": "42aeef24ab9789907358002fdcc37cb3a2e26b4b",
+                "url": "https://api.github.com/repos/PhpGt/Cli/zipball/71deb9cdc5a3ea8bfb665faa29739badbf61e9da",
+                "reference": "71deb9cdc5a3ea8bfb665faa29739badbf61e9da",
                 "shasum": ""
             },
             "require": {
                 "ext-json": "*",
                 "ext-readline": "*",
-                "php": ">=8.2",
-                "phpgt/daemon": "^1.1.3"
+                "php": ">=8.0",
+                "phpgt/daemon": "^v1.1"
             },
             "require-dev": {
-                "phpmd/phpmd": "^2.13",
-                "phpstan/phpstan": "^1.10",
-                "phpunit/phpunit": "^10.5",
-                "squizlabs/php_codesniffer": "^3.7"
+                "phpstan/phpstan": "^v1.8",
+                "phpunit/phpunit": "^v9.5"
             },
             "type": "library",
             "autoload": {
@@ -168,7 +166,7 @@
             ],
             "support": {
                 "issues": "https://github.com/PhpGt/Cli/issues",
-                "source": "https://github.com/PhpGt/Cli/tree/v1.3.5"
+                "source": "https://github.com/PhpGt/Cli/tree/v1.3.4"
             },
             "funding": [
                 {
@@ -176,30 +174,30 @@
                     "type": "github"
                 }
             ],
-            "time": "2024-05-08T17:45:44+00:00"
+            "time": "2023-09-18T10:06:17+00:00"
         },
         {
             "name": "phpgt/config",
-            "version": "v1.1.1",
+            "version": "v1.1.0",
             "source": {
                 "type": "git",
-                "url": "https://github.com/phpgt/Config.git",
-                "reference": "e693bc69af7b844b9b393e8a88755de962b606fe"
+                "url": "https://github.com/PhpGt/Config.git",
+                "reference": "805bba9ef1cb8e087a04e4601045271f73868a96"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpgt/Config/zipball/e693bc69af7b844b9b393e8a88755de962b606fe",
-                "reference": "e693bc69af7b844b9b393e8a88755de962b606fe",
+                "url": "https://api.github.com/repos/PhpGt/Config/zipball/805bba9ef1cb8e087a04e4601045271f73868a96",
+                "reference": "805bba9ef1cb8e087a04e4601045271f73868a96",
                 "shasum": ""
             },
             "require": {
                 "magicalex/write-ini-file": "v1.2.4",
-                "php": ">=8.2",
-                "phpgt/typesafegetter": "^v1.2"
+                "php": ">=8.0",
+                "phpgt/typesafegetter": "1.*"
             },
             "require-dev": {
-                "phpstan/phpstan": "^2.1",
-                "phpunit/phpunit": "^12.4"
+                "phpstan/phpstan": ">=0.12.64",
+                "phpunit/phpunit": "9.*"
             },
             "bin": [
                 "bin/config-generate"
@@ -222,8 +220,8 @@
             ],
             "description": "Manage configuration with ini files and environment variables.",
             "support": {
-                "issues": "https://github.com/phpgt/Config/issues",
-                "source": "https://github.com/phpgt/Config/tree/v1.1.1"
+                "issues": "https://github.com/PhpGt/Config/issues",
+                "source": "https://github.com/PhpGt/Config/tree/v1.1.0"
             },
             "funding": [
                 {
@@ -231,31 +229,28 @@
                     "type": "github"
                 }
             ],
-            "time": "2025-10-19T12:31:15+00:00"
+            "time": "2021-01-30T14:24:07+00:00"
         },
         {
             "name": "phpgt/daemon",
-            "version": "v1.1.5",
+            "version": "v1.1.2",
             "source": {
                 "type": "git",
-                "url": "https://github.com/phpgt/Daemon.git",
-                "reference": "413e16b54de6e1fd5c2b646b485f88a86dfedd9a"
+                "url": "https://github.com/PhpGt/Daemon.git",
+                "reference": "6490df99a22818149f30e3af408002ea7f73e035"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpgt/Daemon/zipball/413e16b54de6e1fd5c2b646b485f88a86dfedd9a",
-                "reference": "413e16b54de6e1fd5c2b646b485f88a86dfedd9a",
+                "url": "https://api.github.com/repos/PhpGt/Daemon/zipball/6490df99a22818149f30e3af408002ea7f73e035",
+                "reference": "6490df99a22818149f30e3af408002ea7f73e035",
                 "shasum": ""
             },
             "require": {
-                "ext-pcntl": "*",
-                "php": ">=8.1"
+                "php": ">=7.4"
             },
             "require-dev": {
-                "phpmd/phpmd": "^2.13",
-                "phpstan/phpstan": "^v1.10",
-                "phpunit/phpunit": "^10.5",
-                "squizlabs/php_codesniffer": "^3.7"
+                "phpstan/phpstan": ">=0.12.42",
+                "phpunit/phpunit": "9.*"
             },
             "type": "library",
             "autoload": {
@@ -266,16 +261,16 @@
             "notification-url": "https://packagist.org/downloads/",
             "description": "Background script execution with cross-platform compatible streaming.",
             "support": {
-                "issues": "https://github.com/phpgt/Daemon/issues",
-                "source": "https://github.com/phpgt/Daemon/tree/v1.1.5"
+                "issues": "https://github.com/PhpGt/Daemon/issues",
+                "source": "https://github.com/PhpGt/Daemon/tree/v1.1.2"
             },
             "funding": [
                 {
-                    "url": "https://github.com/sponsors/PhpGt",
+                    "url": "https://github.com/phpgt",
                     "type": "github"
                 }
             ],
-            "time": "2026-03-11T14:11:10+00:00"
+            "time": "2021-02-02T17:33:16+00:00"
         },
         {
             "name": "phpgt/typesafegetter",
@@ -2478,34 +2473,34 @@
         },
         {
             "name": "symfony/config",
-            "version": "v7.4.7",
+            "version": "v6.4.34",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/config.git",
-                "reference": "6c17162555bfb58957a55bb0e43e00035b6ae3d5"
+                "reference": "ce9cb0c0d281aaf188b802d4968e42bfb60701e9"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/config/zipball/6c17162555bfb58957a55bb0e43e00035b6ae3d5",
-                "reference": "6c17162555bfb58957a55bb0e43e00035b6ae3d5",
+                "url": "https://api.github.com/repos/symfony/config/zipball/ce9cb0c0d281aaf188b802d4968e42bfb60701e9",
+                "reference": "ce9cb0c0d281aaf188b802d4968e42bfb60701e9",
                 "shasum": ""
             },
             "require": {
-                "php": ">=8.2",
+                "php": ">=8.1",
                 "symfony/deprecation-contracts": "^2.5|^3",
-                "symfony/filesystem": "^7.1|^8.0",
+                "symfony/filesystem": "^5.4|^6.0|^7.0",
                 "symfony/polyfill-ctype": "~1.8"
             },
             "conflict": {
-                "symfony/finder": "<6.4",
+                "symfony/finder": "<5.4",
                 "symfony/service-contracts": "<2.5"
             },
             "require-dev": {
-                "symfony/event-dispatcher": "^6.4|^7.0|^8.0",
-                "symfony/finder": "^6.4|^7.0|^8.0",
-                "symfony/messenger": "^6.4|^7.0|^8.0",
+                "symfony/event-dispatcher": "^5.4|^6.0|^7.0",
+                "symfony/finder": "^5.4|^6.0|^7.0",
+                "symfony/messenger": "^5.4|^6.0|^7.0",
                 "symfony/service-contracts": "^2.5|^3",
-                "symfony/yaml": "^6.4|^7.0|^8.0"
+                "symfony/yaml": "^5.4|^6.0|^7.0"
             },
             "type": "library",
             "autoload": {
@@ -2533,7 +2528,7 @@
             "description": "Helps you find, load, combine, autofill and validate configuration values of any kind",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/config/tree/v7.4.7"
+                "source": "https://github.com/symfony/config/tree/v6.4.34"
             },
             "funding": [
                 {
@@ -2553,43 +2548,44 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-03-06T10:41:14+00:00"
+            "time": "2026-02-24T17:34:50+00:00"
         },
         {
             "name": "symfony/dependency-injection",
-            "version": "v7.4.7",
+            "version": "v6.4.35",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/dependency-injection.git",
-                "reference": "0f651e58f4917fb0e2cd261ccbfe3d71e6e0f5db"
+                "reference": "d95712d0e9446b9f244b64811ffb6af7b7434213"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/dependency-injection/zipball/0f651e58f4917fb0e2cd261ccbfe3d71e6e0f5db",
-                "reference": "0f651e58f4917fb0e2cd261ccbfe3d71e6e0f5db",
+                "url": "https://api.github.com/repos/symfony/dependency-injection/zipball/d95712d0e9446b9f244b64811ffb6af7b7434213",
+                "reference": "d95712d0e9446b9f244b64811ffb6af7b7434213",
                 "shasum": ""
             },
             "require": {
-                "php": ">=8.2",
+                "php": ">=8.1",
                 "psr/container": "^1.1|^2.0",
                 "symfony/deprecation-contracts": "^2.5|^3",
-                "symfony/service-contracts": "^3.6",
-                "symfony/var-exporter": "^6.4.20|^7.2.5|^8.0"
+                "symfony/service-contracts": "^2.5|^3.0",
+                "symfony/var-exporter": "^6.4.20|^7.2.5"
             },
             "conflict": {
                 "ext-psr": "<1.1|>=2",
-                "symfony/config": "<6.4",
-                "symfony/finder": "<6.4",
-                "symfony/yaml": "<6.4"
+                "symfony/config": "<6.1",
+                "symfony/finder": "<5.4",
+                "symfony/proxy-manager-bridge": "<6.3",
+                "symfony/yaml": "<5.4"
             },
             "provide": {
                 "psr/container-implementation": "1.1|2.0",
                 "symfony/service-implementation": "1.1|2.0|3.0"
             },
             "require-dev": {
-                "symfony/config": "^6.4|^7.0|^8.0",
-                "symfony/expression-language": "^6.4|^7.0|^8.0",
-                "symfony/yaml": "^6.4|^7.0|^8.0"
+                "symfony/config": "^6.1|^7.0",
+                "symfony/expression-language": "^5.4|^6.0|^7.0",
+                "symfony/yaml": "^5.4|^6.0|^7.0"
             },
             "type": "library",
             "autoload": {
@@ -2617,7 +2613,7 @@
             "description": "Allows you to standardize and centralize the way objects are constructed in your application",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/dependency-injection/tree/v7.4.7"
+                "source": "https://github.com/symfony/dependency-injection/tree/v6.4.35"
             },
             "funding": [
                 {
@@ -2637,7 +2633,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-03-03T07:48:48+00:00"
+            "time": "2026-02-26T12:16:01+00:00"
         },
         {
             "name": "symfony/deprecation-contracts",
@@ -2708,25 +2704,25 @@
         },
         {
             "name": "symfony/filesystem",
-            "version": "v7.4.6",
+            "version": "v6.4.34",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/filesystem.git",
-                "reference": "3ebc794fa5315e59fd122561623c2e2e4280538e"
+                "reference": "01ffe0411b842f93c571e5c391f289c3fdd498c3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/filesystem/zipball/3ebc794fa5315e59fd122561623c2e2e4280538e",
-                "reference": "3ebc794fa5315e59fd122561623c2e2e4280538e",
+                "url": "https://api.github.com/repos/symfony/filesystem/zipball/01ffe0411b842f93c571e5c391f289c3fdd498c3",
+                "reference": "01ffe0411b842f93c571e5c391f289c3fdd498c3",
                 "shasum": ""
             },
             "require": {
-                "php": ">=8.2",
+                "php": ">=8.1",
                 "symfony/polyfill-ctype": "~1.8",
                 "symfony/polyfill-mbstring": "~1.8"
             },
             "require-dev": {
-                "symfony/process": "^6.4|^7.0|^8.0"
+                "symfony/process": "^5.4|^6.4|^7.0"
             },
             "type": "library",
             "autoload": {
@@ -2754,7 +2750,7 @@
             "description": "Provides basic utilities for the filesystem",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/filesystem/tree/v7.4.6"
+                "source": "https://github.com/symfony/filesystem/tree/v6.4.34"
             },
             "funding": [
                 {
@@ -2774,7 +2770,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-02-25T16:50:00+00:00"
+            "time": "2026-02-24T17:51:06+00:00"
         },
         {
             "name": "symfony/polyfill-ctype",
@@ -3033,25 +3029,26 @@
         },
         {
             "name": "symfony/var-exporter",
-            "version": "v8.0.0",
+            "version": "v6.4.26",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/var-exporter.git",
-                "reference": "7345f46c251f2eb27c7b3ebdb5bb076b3ffcae04"
+                "reference": "466fcac5fa2e871f83d31173f80e9c2684743bfc"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/var-exporter/zipball/7345f46c251f2eb27c7b3ebdb5bb076b3ffcae04",
-                "reference": "7345f46c251f2eb27c7b3ebdb5bb076b3ffcae04",
+                "url": "https://api.github.com/repos/symfony/var-exporter/zipball/466fcac5fa2e871f83d31173f80e9c2684743bfc",
+                "reference": "466fcac5fa2e871f83d31173f80e9c2684743bfc",
                 "shasum": ""
             },
             "require": {
-                "php": ">=8.4"
+                "php": ">=8.1",
+                "symfony/deprecation-contracts": "^2.5|^3"
             },
             "require-dev": {
-                "symfony/property-access": "^7.4|^8.0",
-                "symfony/serializer": "^7.4|^8.0",
-                "symfony/var-dumper": "^7.4|^8.0"
+                "symfony/property-access": "^6.4|^7.0",
+                "symfony/serializer": "^6.4|^7.0",
+                "symfony/var-dumper": "^5.4|^6.0|^7.0"
             },
             "type": "library",
             "autoload": {
@@ -3089,7 +3086,7 @@
                 "serialize"
             ],
             "support": {
-                "source": "https://github.com/symfony/var-exporter/tree/v8.0.0"
+                "source": "https://github.com/symfony/var-exporter/tree/v6.4.26"
             },
             "funding": [
                 {
@@ -3109,7 +3106,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2025-11-05T18:53:00+00:00"
+            "time": "2025-09-11T09:57:09+00:00"
         },
         {
             "name": "theseer/tokenizer",
