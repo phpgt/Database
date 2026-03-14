@@ -68,24 +68,35 @@ class QueryCollectionFactory {
 			throw new BaseQueryPathDoesNotExistException($basePath);
 		}
 
+		$matchingFilePath = null;
+		$matchingDirectoryPath = null;
 		foreach(new DirectoryIterator($basePath) as $fileInfo) {
 			if($fileInfo->isDot()) {
 				continue;
 			}
 
 			$basename = $fileInfo->getBasename(".php");
-			if(strtolower($part) === strtolower($basename)) {
-				$realPath = $fileInfo->getRealPath();
-
-				if(empty($parts)) {
-					return $realPath;
-				}
-
-				return $this->recurseLocateDirectory(
-					$parts,
-					$realPath
-				);
+			if(strtolower($part) !== strtolower($basename)) {
+				continue;
 			}
+
+			if($fileInfo->isDir() && !$matchingDirectoryPath) {
+				$matchingDirectoryPath = $fileInfo->getRealPath();
+			}
+			elseif($fileInfo->isFile() && !$matchingFilePath) {
+				$matchingFilePath = $fileInfo->getRealPath();
+			}
+		}
+
+		if(empty($parts)) {
+			return $matchingFilePath ?? $matchingDirectoryPath;
+		}
+
+		if($matchingDirectoryPath) {
+			return $this->recurseLocateDirectory(
+				$parts,
+				$matchingDirectoryPath
+			);
 		}
 
 		return null;

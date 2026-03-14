@@ -11,7 +11,7 @@ use Gt\Database\Query\QueryCollectionClass;
 use Gt\Database\Query\QueryCollectionDirectory;
 use Gt\Database\Query\QueryFactory;
 use Gt\Database\Result\ResultSet;
-use PHPUnit\Framework\MockObject\MockObject;
+use Gt\Database\Test\Helper\Helper;
 use PHPUnit\Framework\TestCase;
 
 class QueryCollectionTest extends TestCase {
@@ -209,5 +209,96 @@ class QueryCollectionTest extends TestCase {
 			$expectedDateTime->format("Y-m-d H:i"),
 			$actualDateTime->format("Y-m-d H:i"),
 		);
+	}
+
+	public function testQueryCollectionClass_sqlBuilderMethod():void {
+		$projectDir = Helper::getTmpDir();
+		$baseQueryDirectory = implode(DIRECTORY_SEPARATOR, [
+			$projectDir,
+			"query",
+		]);
+		$queryCollectionClassPath = "$baseQueryDirectory/BuilderUser.php";
+		mkdir($baseQueryDirectory, 0775, true);
+		$php = <<<PHP
+		<?php
+		namespace App\Query;
+
+		use Gt\SqlBuilder\SelectBuilder;
+
+		class BuilderUser {
+			public function getById():SelectBuilder {
+				return (new SelectBuilder())
+					->select(
+						":id as id",
+						":name as name"
+					);
+			}
+		}
+		PHP;
+		file_put_contents($queryCollectionClassPath, $php);
+
+		try {
+			$sut = new QueryCollectionClass(
+				$queryCollectionClassPath,
+				new Driver(new DefaultSettings()),
+			);
+
+			$resultSet = $sut->query("getById", [
+				"id" => 42,
+				"name" => "Greg",
+			]);
+
+			self::assertInstanceOf(ResultSet::class, $resultSet);
+			$row = $resultSet->fetch();
+			self::assertSame(42, $row->getInt("id"));
+			self::assertSame("Greg", $row->getString("name"));
+		}
+		finally {
+			Helper::deleteDir($projectDir);
+		}
+	}
+
+	public function testQueryCollectionClass_sqlOverrideConflictThrows():void {
+		$projectDir = Helper::getTmpDir();
+		$baseQueryDirectory = implode(DIRECTORY_SEPARATOR, [
+			$projectDir,
+			"query",
+		]);
+		$queryCollectionClassPath = "$baseQueryDirectory/OverrideUser.php";
+		$overrideDirectory = "$baseQueryDirectory/OverrideUser";
+		mkdir($overrideDirectory, 0775, true);
+		$php = <<<PHP
+		<?php
+		namespace App\Query;
+
+		use Gt\SqlBuilder\SelectBuilder;
+
+		class OverrideUser {
+			public function getSource():SelectBuilder {
+				return (new SelectBuilder())
+					->select(
+						"'class' as source"
+					);
+			}
+		}
+		PHP;
+		file_put_contents($queryCollectionClassPath, $php);
+		file_put_contents(
+			"$overrideDirectory/getSource.sql",
+			"select 'override' as source"
+		);
+
+		try {
+			$sut = new QueryCollectionClass(
+				$queryCollectionClassPath,
+				new Driver(new DefaultSettings()),
+			);
+
+			self::expectException(\Gt\Database\Query\QueryOverrideConflictException::class);
+			$sut->query("getSource");
+		}
+		finally {
+			Helper::deleteDir($projectDir);
+		}
 	}
 }

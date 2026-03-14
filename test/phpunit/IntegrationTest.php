@@ -226,7 +226,7 @@ class IntegrationTest extends TestCase {
 			"number" => 1,
 		]);
 		$result2 = $this->db->fetch("exampleCollection/getByNameNumber",
-			[	"name" => "two"] ,
+			["name" => "two"],
 			["number" => 2]
 		);
 		$result3 = $this->db->fetch("exampleCollection/getByNameNumber", [

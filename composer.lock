@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "af19a1a7713ce0c7422a3800c7182263",
+    "content-hash": "5eee2c3a821a40ece49a135b7f3f1fa5",
     "packages": [
         {
             "name": "greenlion/php-sql-parser",
@@ -271,6 +271,49 @@
                 }
             ],
             "time": "2021-02-02T17:33:16+00:00"
+        },
+        {
+            "name": "phpgt/sqlbuilder",
+            "version": "v1.0.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/PhpGt/SqlBuilder.git",
+                "reference": "ac60cad74bb1ac2d8d667e142a56fd6c9d23291a"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/PhpGt/SqlBuilder/zipball/ac60cad74bb1ac2d8d667e142a56fd6c9d23291a",
+                "reference": "ac60cad74bb1ac2d8d667e142a56fd6c9d23291a",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.0"
+            },
+            "require-dev": {
+                "phpmd/phpmd": "^2.13",
+                "phpstan/phpstan": "^1.10",
+                "phpunit/phpunit": "^10.3",
+                "squizlabs/php_codesniffer": "^3.7"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Gt\\SqlBuilder\\": "./src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "description": "Object oriented representation of SQL queries.",
+            "support": {
+                "issues": "https://github.com/PhpGt/SqlBuilder/issues",
+                "source": "https://github.com/PhpGt/SqlBuilder/tree/v1.0.1"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/sponsors/PhpGt",
+                    "type": "github"
+                }
+            ],
+            "time": "2023-09-17T12:33:25+00:00"
         },
         {
             "name": "phpgt/typesafegetter",
