@@ -60,33 +60,11 @@ class QueryCollectionFactory {
 		?string $basePath = null
 	):?string {
 		$part = array_shift($parts);
-		if(is_null($basePath)) {
-			$basePath = $this->basePath;
-		}
-
-		if(!is_dir($basePath)) {
-			throw new BaseQueryPathDoesNotExistException($basePath);
-		}
-
-		$matchingFilePath = null;
-		$matchingDirectoryPath = null;
-		foreach(new DirectoryIterator($basePath) as $fileInfo) {
-			if($fileInfo->isDot()) {
-				continue;
-			}
-
-			$basename = $fileInfo->getBasename(".php");
-			if(strtolower($part) !== strtolower($basename)) {
-				continue;
-			}
-
-			if($fileInfo->isDir() && !$matchingDirectoryPath) {
-				$matchingDirectoryPath = $fileInfo->getRealPath();
-			}
-			elseif($fileInfo->isFile() && !$matchingFilePath) {
-				$matchingFilePath = $fileInfo->getRealPath();
-			}
-		}
+		$basePath = $this->resolveBasePath($basePath);
+		[$matchingFilePath, $matchingDirectoryPath] = $this->findMatchingPaths(
+			$basePath,
+			$part,
+		);
 
 		if(empty($parts)) {
 			return $matchingFilePath ?? $matchingDirectoryPath;
@@ -100,6 +78,45 @@ class QueryCollectionFactory {
 		}
 
 		return null;
+	}
+
+	protected function resolveBasePath(?string $basePath):string {
+		$basePath ??= $this->basePath;
+
+		if(!is_dir($basePath)) {
+			throw new BaseQueryPathDoesNotExistException($basePath);
+		}
+
+		return $basePath;
+	}
+
+	/** @return array{0:?string, 1:?string} */
+	protected function findMatchingPaths(
+		string $basePath,
+		string $part,
+	):array {
+		$matchingFilePath = null;
+		$matchingDirectoryPath = null;
+		foreach(new DirectoryIterator($basePath) as $fileInfo) {
+			if($fileInfo->isDot()) {
+				continue;
+			}
+
+			if(strtolower($part) !== strtolower($fileInfo->getBasename(".php"))) {
+				continue;
+			}
+
+			if($fileInfo->isDir() && !$matchingDirectoryPath) {
+				$matchingDirectoryPath = $fileInfo->getRealPath();
+				continue;
+			}
+
+			if($fileInfo->isFile() && !$matchingFilePath) {
+				$matchingFilePath = $fileInfo->getRealPath();
+			}
+		}
+
+		return [$matchingFilePath, $matchingDirectoryPath];
 	}
 
 	protected function getDefaultBasePath():string {
