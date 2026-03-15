@@ -3,3 +3,5 @@
 /test/unit/_coverage/
 /docs
 /composer.phar
+/test/phpunit/.phpunit.cache
+/test/phpunit/_coverage
