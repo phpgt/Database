@@ -2,6 +2,7 @@
 namespace Gt\Database\Query;
 
 use Gt\Database\Connection\Driver;
+use Stringable;
 
 class PhpQuery extends Query {
 	private string $className;
@@ -11,7 +12,6 @@ class PhpQuery extends Query {
 
 	public function __construct(string $filePathWithFunction, Driver $driver) {
 		[$filePath, $functionName] = explode("::", $filePathWithFunction);
-// TODO: Allow PHP files with :: separators to function names
 		if(!is_file($filePath)) {
 			throw new QueryNotFoundException($filePath);
 		}
@@ -43,6 +43,11 @@ class PhpQuery extends Query {
 			$this->instance = new $fqClassName();
 		}
 
-		return $this->instance->{$this->functionName}();
+		$sql = $this->instance->{$this->functionName}();
+		if($sql instanceof Stringable) {
+			return (string)$sql;
+		}
+
+		return $sql;
 	}
 }

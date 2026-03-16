@@ -21,3 +21,5 @@ Each example:
 - `05-database-migrations.php`: running SQL migrations with `Migrator`
 - `06-multiple-connections.php`: named connections and switching context
 - `07-php-query-collections.php`: PHP-backed query collections with custom namespace
+- `08-sqlbuilder-query-collections.php`: simple `phpgt/sqlbuilder` query collection methods
+- `09-sqlbuilder-overrides-and-reports.php`: class-backed reports plus SQL overrides

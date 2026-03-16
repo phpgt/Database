@@ -60,35 +60,63 @@ class QueryCollectionFactory {
 		?string $basePath = null
 	):?string {
 		$part = array_shift($parts);
-		if(is_null($basePath)) {
-			$basePath = $this->basePath;
+		$basePath = $this->resolveBasePath($basePath);
+		[$matchingFilePath, $matchingDirectoryPath] = $this->findMatchingPaths(
+			$basePath,
+			$part,
+		);
+
+		if(empty($parts)) {
+			return $matchingFilePath ?? $matchingDirectoryPath;
 		}
+
+		if($matchingDirectoryPath) {
+			return $this->recurseLocateDirectory(
+				$parts,
+				$matchingDirectoryPath
+			);
+		}
+
+		return null;
+	}
+
+	protected function resolveBasePath(?string $basePath):string {
+		$basePath ??= $this->basePath;
 
 		if(!is_dir($basePath)) {
 			throw new BaseQueryPathDoesNotExistException($basePath);
 		}
 
+		return $basePath;
+	}
+
+	/** @return array{0:?string, 1:?string} */
+	protected function findMatchingPaths(
+		string $basePath,
+		string $part,
+	):array {
+		$matchingFilePath = null;
+		$matchingDirectoryPath = null;
 		foreach(new DirectoryIterator($basePath) as $fileInfo) {
 			if($fileInfo->isDot()) {
 				continue;
 			}
 
-			$basename = $fileInfo->getBasename(".php");
-			if(strtolower($part) === strtolower($basename)) {
-				$realPath = $fileInfo->getRealPath();
+			if(strtolower($part) !== strtolower($fileInfo->getBasename(".php"))) {
+				continue;
+			}
 
-				if(empty($parts)) {
-					return $realPath;
-				}
+			if($fileInfo->isDir() && !$matchingDirectoryPath) {
+				$matchingDirectoryPath = $fileInfo->getRealPath();
+				continue;
+			}
 
-				return $this->recurseLocateDirectory(
-					$parts,
-					$realPath
-				);
+			if($fileInfo->isFile() && !$matchingFilePath) {
+				$matchingFilePath = $fileInfo->getRealPath();
 			}
 		}
 
-		return null;
+		return [$matchingFilePath, $matchingDirectoryPath];
 	}
 
 	protected function getDefaultBasePath():string {

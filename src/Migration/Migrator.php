@@ -6,7 +6,6 @@ use Exception;
 use Gt\Database\Database;
 use Gt\Database\Connection\Settings;
 use Gt\Database\DatabaseException;
-use PHPSQLParser\lexer\PHPSQLLexer;
 use SplFileInfo;
 use SplFileObject;
 
@@ -197,57 +196,23 @@ class Migrator {
 		array $migrationFileList,
 		int $existingFileNumber = 0
 	):int {
-		$fileNumber = 0;
 		$numCompleted = 0;
+		$sqlStatementSplitter = new SqlStatementSplitter();
 		
 		foreach($migrationFileList as $file) {
 			$fileNumber = $this->extractNumberFromFilename($file);
-
 			if($fileNumber <= $existingFileNumber) {
 				continue;
 			}
 
 			$this->output("Migration $fileNumber: `$file`.");
-
-			$totalSql = file_get_contents($file);
 			$md5 = md5_file($file);
 
-			$lexer = new PHPSQLLexer();
-			$splitSqlQueryList = [];
-			$currentQuery = "";
-			foreach($lexer->split($totalSql) as $token) {
-				if($token === ";") {
-					array_push($splitSqlQueryList, trim($currentQuery));
-					$currentQuery = "";
-					continue;
-				}
-
-				$currentQuery .= $token;
-			}
-			if(trim($currentQuery)) {
-				array_push($splitSqlQueryList, trim($currentQuery));
+			foreach($sqlStatementSplitter->split(file_get_contents($file)) as $sql) {
+				$this->dbClient->executeSql($sql);
 			}
 
-			try {
-				foreach($splitSqlQueryList as $sql) {
-					$sql = trim($sql);
-					if(!$sql) {
-						continue;
-					}
-
-					$fname = pathinfo($file, PATHINFO_FILENAME);
-					if($fname === "070-application-renewCardId") {
-						echo "RUNNING:\n$sql\n\n";
-					}
-					$this->dbClient->executeSql($sql);
-				}
-
-				$this->recordMigrationSuccess($fileNumber, $md5);
-			}
-			catch(DatabaseException $exception) {
-				throw $exception;
-			}
-
+			$this->recordMigrationSuccess($fileNumber, $md5);
 			$numCompleted++;
 		}
 

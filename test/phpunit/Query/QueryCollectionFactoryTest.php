@@ -3,6 +3,8 @@ namespace Gt\Database\Test\Query;
 
 use Gt\Database\Connection\Settings;
 use Gt\Database\Connection\Driver;
+use Gt\Database\Query\QueryCollectionClass;
+use Gt\Database\Query\QueryCollectionDirectory;
 use Gt\Database\Query\QueryCollectionFactory;
 use Gt\Database\Query\QueryCollectionNotFoundException;
 use Gt\Database\Test\Helper\Helper;
@@ -53,5 +55,51 @@ class QueryCollectionFactoryTest extends TestCase {
 
 		self::expectException(QueryCollectionNotFoundException::class);
 		$queryCollectionFactory->create($queryCollectionName);
+	}
+
+	public function testClassOverridesDirectoryCaseInsensitively():void {
+		$baseDir = Helper::getTmpDir();
+		$queryBase = "$baseDir/query";
+		mkdir("$queryBase/user", 0775, true);
+		touch("$queryBase/User.php");
+
+		$driver = new Driver(new Settings(
+			$queryBase,
+			Settings::DRIVER_SQLITE,
+			Settings::SCHEMA_IN_MEMORY,
+		));
+		$queryCollectionFactory = new QueryCollectionFactory($driver);
+
+		try {
+			$queryCollection = $queryCollectionFactory->create("user");
+			self::assertInstanceOf(QueryCollectionClass::class, $queryCollection);
+
+			$queryCollection = $queryCollectionFactory->create("User");
+			self::assertInstanceOf(QueryCollectionClass::class, $queryCollection);
+		}
+		finally {
+			Helper::deleteDir($baseDir);
+		}
+	}
+
+	public function testDirectoryUsedWhenNoClassExistsCaseInsensitively():void {
+		$baseDir = Helper::getTmpDir();
+		$queryBase = "$baseDir/query";
+		mkdir("$queryBase/user", 0775, true);
+
+		$driver = new Driver(new Settings(
+			$queryBase,
+			Settings::DRIVER_SQLITE,
+			Settings::SCHEMA_IN_MEMORY,
+		));
+		$queryCollectionFactory = new QueryCollectionFactory($driver);
+
+		try {
+			$queryCollection = $queryCollectionFactory->create("User");
+			self::assertInstanceOf(QueryCollectionDirectory::class, $queryCollection);
+		}
+		finally {
+			Helper::deleteDir($baseDir);
+		}
 	}
 }

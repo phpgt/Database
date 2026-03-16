@@ -8,6 +8,8 @@ use Gt\Database\Query\Query;
 use Gt\Database\Query\QueryFactory;
 use Gt\Database\Query\QueryFileExtensionException;
 use Gt\Database\Query\QueryNotFoundException;
+use Gt\Database\Query\QueryOverrideConflictException;
+use Gt\Database\Query\SqlQuery;
 use Gt\Database\Test\Helper\Helper;
 use PHPUnit\Framework\TestCase;
 
@@ -108,5 +110,149 @@ class QueryFactoryTest extends TestCase {
 		$sut = new QueryFactory($classPath, new Driver(new DefaultSettings()));
 		$query = $sut->create("getTimestamp");
 		self::assertInstanceOf(PhpQuery::class, $query);
+	}
+
+	public function testCreatePhpPrefersOverrideDirectoryQuery():void {
+		$basePath = Helper::getTmpDir();
+		$classPath = implode(DIRECTORY_SEPARATOR, [
+			$basePath,
+			"query",
+			"User.php",
+		]);
+		$overrideDirectory = implode(DIRECTORY_SEPARATOR, [
+			$basePath,
+			"query",
+			"User",
+		]);
+		mkdir($overrideDirectory, 0775, true);
+		touch($classPath);
+		file_put_contents(
+			"$overrideDirectory/getById.sql",
+			"select :id as id"
+		);
+
+		try {
+			$sut = new QueryFactory($classPath, new Driver(new DefaultSettings()));
+			$query = $sut->create("getById");
+
+			self::assertInstanceOf(SqlQuery::class, $query);
+			self::assertSame(
+				realpath("$overrideDirectory/getById.sql"),
+				$query->getFilePath()
+			);
+		}
+		finally {
+			Helper::deleteDir($basePath);
+		}
+	}
+
+	public function testCreatePhpPrefersOverrideDirectoryCaseInsensitively():void {
+		$basePath = Helper::getTmpDir();
+		$classPath = implode(DIRECTORY_SEPARATOR, [
+			$basePath,
+			"query",
+			"User.php",
+		]);
+		$overrideDirectory = implode(DIRECTORY_SEPARATOR, [
+			$basePath,
+			"query",
+			"user",
+		]);
+		mkdir($overrideDirectory, 0775, true);
+		touch($classPath);
+		file_put_contents(
+			"$overrideDirectory/getById.sql",
+			"select :id as id"
+		);
+
+		try {
+			$sut = new QueryFactory($classPath, new Driver(new DefaultSettings()));
+			$query = $sut->create("getById");
+
+			self::assertInstanceOf(SqlQuery::class, $query);
+			self::assertSame(
+				realpath("$overrideDirectory/getById.sql"),
+				$query->getFilePath()
+			);
+		}
+		finally {
+			Helper::deleteDir($basePath);
+		}
+	}
+
+	public function testCreatePhpPrefersOverrideDirectoryWhenClassIsLowerCase():void {
+		$basePath = Helper::getTmpDir();
+		$classPath = implode(DIRECTORY_SEPARATOR, [
+			$basePath,
+			"query",
+			"user.php",
+		]);
+		$overrideDirectory = implode(DIRECTORY_SEPARATOR, [
+			$basePath,
+			"query",
+			"User",
+		]);
+		mkdir($overrideDirectory, 0775, true);
+		touch($classPath);
+		file_put_contents(
+			"$overrideDirectory/getById.sql",
+			"select :id as id"
+		);
+
+		try {
+			$sut = new QueryFactory($classPath, new Driver(new DefaultSettings()));
+			$query = $sut->create("getById");
+
+			self::assertInstanceOf(SqlQuery::class, $query);
+			self::assertSame(
+				realpath("$overrideDirectory/getById.sql"),
+				$query->getFilePath()
+			);
+		}
+		finally {
+			Helper::deleteDir($basePath);
+		}
+	}
+
+	public function testCreatePhpThrowsWhenOverrideConflictsWithPublicMethod():void {
+		$basePath = Helper::getTmpDir();
+		$classPath = implode(DIRECTORY_SEPARATOR, [
+			$basePath,
+			"query",
+			"User.php",
+		]);
+		$overrideDirectory = implode(DIRECTORY_SEPARATOR, [
+			$basePath,
+			"query",
+			"user",
+		]);
+		mkdir($overrideDirectory, 0775, true);
+		file_put_contents(
+			$classPath,
+			<<<PHP
+			<?php
+			namespace App\Query;
+
+			class FactoryConflictUser {
+				public function getById():string {
+					return "select 1";
+				}
+			}
+			PHP
+		);
+		file_put_contents(
+			"$overrideDirectory/getById.sql",
+			"select :id as id"
+		);
+
+		try {
+			$sut = new QueryFactory($classPath, new Driver(new DefaultSettings()));
+
+			self::expectException(QueryOverrideConflictException::class);
+			$sut->create("getById");
+		}
+		finally {
+			Helper::deleteDir($basePath);
+		}
 	}
 }
