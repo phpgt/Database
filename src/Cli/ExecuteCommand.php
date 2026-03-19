@@ -197,7 +197,7 @@ class ExecuteCommand extends Command {
 			: null;
 
 		if($default) {
-			$config->merge($default);
+			$config = $config->withMerge($default);
 		}
 		return $config;
 	}
