@@ -178,26 +178,28 @@
         },
         {
             "name": "phpgt/config",
-            "version": "v1.1.0",
+            "version": "v1.2.0",
             "source": {
                 "type": "git",
-                "url": "https://github.com/PhpGt/Config.git",
-                "reference": "805bba9ef1cb8e087a04e4601045271f73868a96"
+                "url": "https://github.com/phpgt/Config.git",
+                "reference": "21fa25f3dca864ecc9c54800a4394eb5601f2c4d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/PhpGt/Config/zipball/805bba9ef1cb8e087a04e4601045271f73868a96",
-                "reference": "805bba9ef1cb8e087a04e4601045271f73868a96",
+                "url": "https://api.github.com/repos/phpgt/Config/zipball/21fa25f3dca864ecc9c54800a4394eb5601f2c4d",
+                "reference": "21fa25f3dca864ecc9c54800a4394eb5601f2c4d",
                 "shasum": ""
             },
             "require": {
                 "magicalex/write-ini-file": "v1.2.4",
-                "php": ">=8.0",
-                "phpgt/typesafegetter": "1.*"
+                "php": ">=8.3",
+                "phpgt/typesafegetter": "^v1.2"
             },
             "require-dev": {
-                "phpstan/phpstan": ">=0.12.64",
-                "phpunit/phpunit": "9.*"
+                "phpmd/phpmd": "^2.15",
+                "phpstan/phpstan": "^2.1",
+                "phpunit/phpunit": "^12.4",
+                "squizlabs/php_codesniffer": "^4.0"
             },
             "bin": [
                 "bin/config-generate"
@@ -220,8 +222,8 @@
             ],
             "description": "Manage configuration with ini files and environment variables.",
             "support": {
-                "issues": "https://github.com/PhpGt/Config/issues",
-                "source": "https://github.com/PhpGt/Config/tree/v1.1.0"
+                "issues": "https://github.com/phpgt/Config/issues",
+                "source": "https://github.com/phpgt/Config/tree/v1.2.0"
             },
             "funding": [
                 {
@@ -229,7 +231,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2021-01-30T14:24:07+00:00"
+            "time": "2026-03-16T11:04:06+00:00"
         },
         {
             "name": "phpgt/daemon",
