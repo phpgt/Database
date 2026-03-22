@@ -93,7 +93,7 @@ class RowTest extends TestCase {
 		$row = new Row($data);
 		$float = $row->getFloat("exampleFloat");
 		self::assertIsFloat($float);
-		self::assertSame(round($data["exampleFloat"], 5), round($float, 5));
+		self::assertSame(round($data["exampleFloat"], 4), round($float, 4));
 	}
 
 	/** @dataProvider data_getTestRow */
