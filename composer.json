@@ -4,7 +4,7 @@
 	"type": "library",
 
 	"require": {
-		"php": ">=8.1",
+		"php": ">=8.3",
 		"ext-PDO": "*",
 		"phpgt/config": "^v1.1.0",
 		"phpgt/cli": "^1.3",
