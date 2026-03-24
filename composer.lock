@@ -119,27 +119,29 @@
         },
         {
             "name": "phpgt/cli",
-            "version": "v1.3.4",
+            "version": "v1.3.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/PhpGt/Cli.git",
-                "reference": "71deb9cdc5a3ea8bfb665faa29739badbf61e9da"
+                "reference": "42aeef24ab9789907358002fdcc37cb3a2e26b4b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/PhpGt/Cli/zipball/71deb9cdc5a3ea8bfb665faa29739badbf61e9da",
-                "reference": "71deb9cdc5a3ea8bfb665faa29739badbf61e9da",
+                "url": "https://api.github.com/repos/PhpGt/Cli/zipball/42aeef24ab9789907358002fdcc37cb3a2e26b4b",
+                "reference": "42aeef24ab9789907358002fdcc37cb3a2e26b4b",
                 "shasum": ""
             },
             "require": {
                 "ext-json": "*",
                 "ext-readline": "*",
-                "php": ">=8.0",
-                "phpgt/daemon": "^v1.1"
+                "php": ">=8.2",
+                "phpgt/daemon": "^1.1.3"
             },
             "require-dev": {
-                "phpstan/phpstan": "^v1.8",
-                "phpunit/phpunit": "^v9.5"
+                "phpmd/phpmd": "^2.13",
+                "phpstan/phpstan": "^1.10",
+                "phpunit/phpunit": "^10.5",
+                "squizlabs/php_codesniffer": "^3.7"
             },
             "type": "library",
             "autoload": {
@@ -166,7 +168,7 @@
             ],
             "support": {
                 "issues": "https://github.com/PhpGt/Cli/issues",
-                "source": "https://github.com/PhpGt/Cli/tree/v1.3.4"
+                "source": "https://github.com/PhpGt/Cli/tree/v1.3.5"
             },
             "funding": [
                 {
@@ -174,7 +176,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2023-09-18T10:06:17+00:00"
+            "time": "2024-05-08T17:45:44+00:00"
         },
         {
             "name": "phpgt/config",
@@ -235,24 +237,27 @@
         },
         {
             "name": "phpgt/daemon",
-            "version": "v1.1.2",
+            "version": "v1.1.5",
             "source": {
                 "type": "git",
-                "url": "https://github.com/PhpGt/Daemon.git",
-                "reference": "6490df99a22818149f30e3af408002ea7f73e035"
+                "url": "https://github.com/phpgt/Daemon.git",
+                "reference": "413e16b54de6e1fd5c2b646b485f88a86dfedd9a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/PhpGt/Daemon/zipball/6490df99a22818149f30e3af408002ea7f73e035",
-                "reference": "6490df99a22818149f30e3af408002ea7f73e035",
+                "url": "https://api.github.com/repos/phpgt/Daemon/zipball/413e16b54de6e1fd5c2b646b485f88a86dfedd9a",
+                "reference": "413e16b54de6e1fd5c2b646b485f88a86dfedd9a",
                 "shasum": ""
             },
             "require": {
-                "php": ">=7.4"
+                "ext-pcntl": "*",
+                "php": ">=8.1"
             },
             "require-dev": {
-                "phpstan/phpstan": ">=0.12.42",
-                "phpunit/phpunit": "9.*"
+                "phpmd/phpmd": "^2.13",
+                "phpstan/phpstan": "^v1.10",
+                "phpunit/phpunit": "^10.5",
+                "squizlabs/php_codesniffer": "^3.7"
             },
             "type": "library",
             "autoload": {
@@ -263,16 +268,16 @@
             "notification-url": "https://packagist.org/downloads/",
             "description": "Background script execution with cross-platform compatible streaming.",
             "support": {
-                "issues": "https://github.com/PhpGt/Daemon/issues",
-                "source": "https://github.com/PhpGt/Daemon/tree/v1.1.2"
+                "issues": "https://github.com/phpgt/Daemon/issues",
+                "source": "https://github.com/phpgt/Daemon/tree/v1.1.5"
             },
             "funding": [
                 {
-                    "url": "https://github.com/phpgt",
+                    "url": "https://github.com/sponsors/PhpGt",
                     "type": "github"
                 }
             ],
-            "time": "2021-02-02T17:33:16+00:00"
+            "time": "2026-03-11T14:11:10+00:00"
         },
         {
             "name": "phpgt/sqlbuilder",
