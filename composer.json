@@ -14,7 +14,7 @@
 
 	"require-dev": {
 		"ext-sqlite3": "*",
-		"phpstan/phpstan": "^v1.10",
+		"phpstan/phpstan": "^v1.10 || ^2.0",
 		"phpunit/phpunit": "^10.1",
 		"phpmd/phpmd": "^2.13",
 		"squizlabs/php_codesniffer": "^3.7"
