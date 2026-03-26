@@ -89,6 +89,35 @@ class ExecuteCommandTest extends TestCase {
 		];
 	}
 
+	public function testGetConfigMergesDefaultConfigWithProjectOverrides():void {
+		$project = $this->createProjectDir();
+		$sqlitePath = str_replace("\\", "/", $project . DIRECTORY_SEPARATOR . "cli-test.db");
+		$this->writeConfigIni($project, $sqlitePath);
+
+		$defaultConfigPath = $project . DIRECTORY_SEPARATOR . "config.default.ini";
+		file_put_contents($defaultConfigPath, implode(PHP_EOL, [
+			"[database]",
+			"host = default-host",
+			"port = 4406",
+			"migration_table = project_migrations",
+			"schema = default-schema",
+		]));
+
+		$command = new class extends ExecuteCommand {
+			public function getConfigPublic(string $repoBasePath, ?string $defaultPath):\Gt\Config\Config {
+				return $this->getConfig($repoBasePath, $defaultPath);
+			}
+		};
+
+		$config = $command->getConfigPublic($project, $defaultConfigPath);
+
+		self::assertSame("default-host", $config->get("database.host"));
+		self::assertSame("4406", $config->get("database.port"));
+		self::assertSame("project_migrations", $config->get("database.migration_table"));
+		self::assertSame($sqlitePath, $config->get("database.schema"));
+		self::assertSame("sqlite", $config->get("database.driver"));
+	}
+
 	public function testExecuteMigratesAll():void {
 		$project = $this->createProjectDir();
 		$sqlitePath = str_replace("\\", "/", $project . DIRECTORY_SEPARATOR . "cli-test.db");
