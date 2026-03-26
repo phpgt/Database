@@ -3,7 +3,6 @@ namespace Gt\Database\Cli;
 
 use Gt\Cli\Argument\ArgumentValueList;
 use Gt\Cli\Command\Command;
-use Gt\Cli\Parameter\NamedParameter;
 use Gt\Cli\Parameter\Parameter;
 use Gt\Config\ConfigFactory;
 use Gt\Database\Connection\Settings;
@@ -18,8 +17,8 @@ class ExecuteCommand extends Command {
 		$defaultPath = $this->getDefaultPath($repoBasePath);
 		$config = $this->getConfig($repoBasePath, $defaultPath);
 
-		$settings = $this->buildSettingsFromConfig($config, $repoBasePath);
-		[$migrationPath, $migrationTable] = $this->getMigrationLocation($config, $repoBasePath);
+		$settings = $this->buildSettingsFromConfig($config, $repoBasePath, $arguments);
+		[$migrationPath, $migrationTable] = $this->getMigrationLocation($config, $repoBasePath, $arguments);
 
 		$migrator = new Migrator($settings, $migrationPath, $migrationTable);
 		$migrator->setOutput(
@@ -47,18 +46,61 @@ class ExecuteCommand extends Command {
 	}
 
 	/** Build Settings from config for the current repository. */
-	private function buildSettingsFromConfig(\Gt\Config\Config $config, string $repoBasePath): Settings {
+	protected function buildSettingsFromConfig(
+		\Gt\Config\Config $config,
+		string $repoBasePath,
+		?ArgumentValueList $arguments = null
+	): Settings {
+		$queryPath = $this->getOverrideOrConfigValue(
+			$config,
+			$arguments,
+			"base-directory",
+			"database.query_path",
+			"query"
+		);
 		return new Settings(
-			implode(DIRECTORY_SEPARATOR, [
-				$repoBasePath,
-				$config->get("database.query_path")
-			]),
-			$config->get("database.driver") ?? 'mysql',
-			$config->get("database.schema"),
-			$config->get("database.host") ?? "localhost",
-			(int)($config->get("database.port") ?? "3306"),
-			$config->get("database.username"),
-			$config->get("database.password")
+			$this->resolvePath($repoBasePath, $queryPath),
+			$this->getOverrideOrConfigValue(
+				$config,
+				$arguments,
+				"driver",
+				"database.driver",
+				"mysql"
+			),
+			$this->getOverrideOrConfigValue(
+				$config,
+				$arguments,
+				"database",
+				"database.schema"
+			),
+			$this->getOverrideOrConfigValue(
+				$config,
+				$arguments,
+				"host",
+				"database.host",
+				"localhost"
+			),
+			(int)$this->getOverrideOrConfigValue(
+				$config,
+				$arguments,
+				"port",
+				"database.port",
+				"3306"
+			),
+			$this->getOverrideOrConfigValue(
+				$config,
+				$arguments,
+				"username",
+				"database.username",
+				""
+			),
+			$this->getOverrideOrConfigValue(
+				$config,
+				$arguments,
+				"password",
+				"database.password",
+				""
+			)
 		);
 	}
 
@@ -67,10 +109,20 @@ class ExecuteCommand extends Command {
 	 *
 	 * @return list<string>
 	 */
-	private function getMigrationLocation(\Gt\Config\Config $config, string $repoBasePath): array {
+	protected function getMigrationLocation(
+		\Gt\Config\Config $config,
+		string $repoBasePath,
+		?ArgumentValueList $arguments = null
+	): array {
+		$queryPath = $this->getOverrideOrConfigValue(
+			$config,
+			$arguments,
+			"base-directory",
+			"database.query_path",
+			"query"
+		);
 		$migrationPath = implode(DIRECTORY_SEPARATOR, [
-			$repoBasePath,
-			$config->get("database.query_path") ?? "query",
+			$this->resolvePath($repoBasePath, $queryPath),
 			$config->get("database.migration_path") ?? "_migration",
 		]);
 		$migrationTable = $config->get("database.migration_table") ?? "_migration";
@@ -141,7 +193,6 @@ class ExecuteCommand extends Command {
 	}
 
 	public function getOptionalNamedParameterList():array {
-// TODO: It would be an improvement to allow passing database settings here rather than always require a config.ini
 		return [];
 	}
 
@@ -151,6 +202,48 @@ class ExecuteCommand extends Command {
 
 	public function getOptionalParameterList():array {
 		return [
+			new Parameter(
+				true,
+				"base-directory",
+				null,
+				"Override database.query_path for this command"
+			),
+			new Parameter(
+				true,
+				"driver",
+				null,
+				"Override database.driver for this command"
+			),
+			new Parameter(
+				true,
+				"database",
+				null,
+				"Override database.schema for this command"
+			),
+			new Parameter(
+				true,
+				"host",
+				null,
+				"Override database.host for this command"
+			),
+			new Parameter(
+				true,
+				"port",
+				null,
+				"Override database.port for this command"
+			),
+			new Parameter(
+				true,
+				"username",
+				null,
+				"Override database.username for this command"
+			),
+			new Parameter(
+				true,
+				"password",
+				null,
+				"Override database.password for this command"
+			),
 			new Parameter(
 				false,
 				"force",
@@ -200,5 +293,29 @@ class ExecuteCommand extends Command {
 			$config = $config->withMerge($default);
 		}
 		return $config;
+	}
+
+	protected function getOverrideOrConfigValue(
+		\Gt\Config\Config $config,
+		?ArgumentValueList $arguments,
+		string $argumentKey,
+		string $configKey,
+		?string $default = null
+	): ?string {
+		if($arguments?->contains($argumentKey)) {
+			return $arguments->get($argumentKey)->get() ?? $default;
+		}
+
+		return $config->get($configKey) ?? $default;
+	}
+	protected function resolvePath(string $repoBasePath, string $path):string {
+		if(str_starts_with($path, DIRECTORY_SEPARATOR)) {
+			return $path;
+		}
+
+		return implode(DIRECTORY_SEPARATOR, [
+			$repoBasePath,
+			$path,
+		]);
 	}
 }

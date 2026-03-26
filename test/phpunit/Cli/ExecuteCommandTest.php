@@ -3,10 +3,13 @@ namespace Gt\Database\Test\Cli;
 
 use Gt\Cli\Argument\ArgumentValueList;
 use Gt\Cli\Stream;
+use Gt\Config\Config;
+use Gt\Config\ConfigSection;
 use Gt\Database\Cli\ExecuteCommand;
 use Gt\Database\Connection\Settings;
 use Gt\Database\Database;
 use Gt\Database\Test\Helper\Helper;
+use Gt\Cli\Parameter\Parameter;
 use PHPUnit\Framework\TestCase;
 use SplFileObject;
 
@@ -218,4 +221,99 @@ class ExecuteCommandTest extends TestCase {
 			chdir($cwdBackup);
 		}
 	}
+
+	public function testOptionalParameterListContainsCliOverrides():void {
+		$command = new ExecuteCommand();
+		$parameterNames = array_map(
+			fn(Parameter $parameter) => $parameter->getLongOption(),
+			$command->getOptionalParameterList()
+		);
+
+		self::assertContains("base-directory", $parameterNames);
+		self::assertContains("driver", $parameterNames);
+		self::assertContains("database", $parameterNames);
+		self::assertContains("host", $parameterNames);
+		self::assertContains("port", $parameterNames);
+		self::assertContains("username", $parameterNames);
+		self::assertContains("password", $parameterNames);
+		self::assertContains("force", $parameterNames);
+		self::assertContains("reset", $parameterNames);
+	}
+
+	public function testCliArgumentsOverrideConfigValuesWhenBuildingSettings():void {
+		$repoBasePath = "/tmp/project-root";
+		$config = new Config(
+			new ConfigSection("database", [
+				"query_path" => "query",
+				"driver" => "mysql",
+				"schema" => "config-db",
+				"host" => "config-host",
+				"port" => "3306",
+				"username" => "config-user",
+				"password" => "config-pass",
+				"migration_path" => "_migration",
+				"migration_table" => "_migration",
+			])
+		);
+		$args = new ArgumentValueList();
+		$args->set("base-directory", "custom-query");
+		$args->set("driver", "sqlite");
+		$args->set("database", "/tmp/override.db");
+		$args->set("host", "override-host");
+		$args->set("port", "1234");
+		$args->set("username", "override-user");
+		$args->set("password", "override-pass");
+
+		$command = $this->createCommandProbe();
+		$settings = $command->buildSettingsForTest($config, $repoBasePath, $args);
+
+		self::assertSame("/tmp/project-root/custom-query", $settings->getBaseDirectory());
+		self::assertSame("sqlite", $settings->getDriver());
+		self::assertSame("/tmp/override.db", $settings->getSchema());
+		self::assertSame("override-host", $settings->getHost());
+		self::assertSame(1234, $settings->getPort());
+		self::assertSame("override-user", $settings->getUsername());
+		self::assertSame("override-pass", $settings->getPassword());
+	}
+
+	public function testBaseDirectoryOverrideIsUsedForMigrationLocation():void {
+		$repoBasePath = "/tmp/project-root";
+		$config = new Config(
+			new ConfigSection("database", [
+				"query_path" => "query",
+				"migration_path" => "_migration",
+				"migration_table" => "migration_log",
+			])
+		);
+		$args = new ArgumentValueList();
+		$args->set("base-directory", "alt-query");
+
+		$command = $this->createCommandProbe();
+		[$migrationPath, $migrationTable] = $command->getMigrationLocationForTest($config, $repoBasePath, $args);
+
+		self::assertSame("/tmp/project-root/alt-query/_migration", $migrationPath);
+		self::assertSame("migration_log", $migrationTable);
+	}
+
+	private function createCommandProbe():ExecuteCommand {
+		return new class extends ExecuteCommand {
+			public function buildSettingsForTest(
+				Config $config,
+				string $repoBasePath,
+				?ArgumentValueList $arguments = null
+			): Settings {
+				return $this->buildSettingsFromConfig($config, $repoBasePath, $arguments);
+			}
+
+			/** @return list<string> */
+			public function getMigrationLocationForTest(
+				Config $config,
+				string $repoBasePath,
+				?ArgumentValueList $arguments = null
+			): array {
+				return $this->getMigrationLocation($config, $repoBasePath, $arguments);
+			}
+		};
+	}
+
 }
