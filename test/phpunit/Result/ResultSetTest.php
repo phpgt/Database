@@ -88,6 +88,44 @@ class ResultSetTest extends TestCase {
 		self::assertCount($count, $resultSet);
 	}
 
+	public function testGetFieldList() {
+		$resultSet = new ResultSet($this->getStatementMock());
+		self::assertSame(
+			["id", "name", "timestamp", "date"],
+			$resultSet->getFieldList()
+		);
+	}
+
+	public function testGetFieldListFallbackToFirstRow() {
+		$resultSet = new ResultSet($this->getStatementMock(false));
+		self::assertSame(
+			["id", "name", "timestamp", "date"],
+			$resultSet->getFieldList()
+		);
+	}
+
+	public function testGetFieldListNoRows() {
+		$statement = $this->createMock(PDOStatement::class);
+		$statement->method("fetch")->willReturn(null);
+		$statement->method("execute")->willReturn(true);
+		$statement->method("columnCount")->willReturn(0);
+		$resultSet = new ResultSet($statement);
+
+		self::assertSame([], $resultSet->getFieldList());
+	}
+
+	public function testGetFieldListMidIteration() {
+		$resultSet = new ResultSet($this->getStatementMock());
+		$resultSet->rewind();
+		$resultSet->next();
+
+		self::assertSame(
+			["id", "name", "timestamp", "date"],
+			$resultSet->getFieldList()
+		);
+		self::assertEquals(2, $resultSet->current()->id);
+	}
+
 	public function testAccessByRowIndex() {
 		$resultSet = new ResultSet($this->getStatementMock());
 
@@ -137,12 +175,25 @@ class ResultSetTest extends TestCase {
 		self::assertEquals("1988-04-05 17:24", $row->getDateTime("timestamp")->format("Y-m-d H:i"));
 	}
 
-	private function getStatementMock():PDOStatement {
+	private function getStatementMock(bool $withMetadata = true):PDOStatement {
 		$statement = $this->createMock(PDOStatement::class);
 		$statement->method("fetch")
 			->will(self::returnCallback([$this, "getNextFakeData"]));
 		$statement->method("execute")
 			->willReturnCallback([$this, "rewindFakeData"]);
+		if($withMetadata) {
+			$statement->method("columnCount")
+				->willReturn(count(self::FAKE_DATA[0]));
+			$statement->method("getColumnMeta")
+				->willReturnCallback(function(int $index):array {
+					$name = array_keys(self::FAKE_DATA[0])[$index] ?? null;
+					return ["name" => $name];
+				});
+		}
+		else {
+			$statement->method("columnCount")
+				->willReturn(0);
+		}
 
 		return $statement;
 	}

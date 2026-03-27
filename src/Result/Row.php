@@ -67,6 +67,11 @@ class Row implements Iterator {
 		return $this->data;
 	}
 
+	/** @return array<string> */
+	public function getFieldList():array {
+		return array_keys($this->data);
+	}
+
 	public function contains(string $name):bool {
 		return $this->__isset($name);
 	}

@@ -56,6 +56,19 @@ class RowTest extends TestCase {
 		self::assertFalse($row->contains("col2"));
 	}
 
+	public function testGetFieldList() {
+		$row = new Row([
+			"id" => 123,
+			"name" => "Example",
+			"enabled" => 1,
+		]);
+
+		self::assertSame(
+			["id", "name", "enabled"],
+			$row->getFieldList()
+		);
+	}
+
 	/** @dataProvider data_getTestRow */
 	public function testIteration(array $data) {
 		$row = new Row($data);

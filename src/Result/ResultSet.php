@@ -85,6 +85,32 @@ class ResultSet implements Iterator, Countable {
 		);
 	}
 
+	/** @return array<string> */
+	public function getFieldList():array {
+		$fieldCount = $this->statement->columnCount();
+		$fieldList = [];
+		for($i = 0; $i < $fieldCount; $i++) {
+			$meta = $this->statement->getColumnMeta($i);
+			$name = $meta["name"] ?? null;
+			if(is_string($name)) {
+				$fieldList[] = $name;
+			}
+		}
+
+		if(!empty($fieldList)) {
+			return $fieldList;
+		}
+
+// Some drivers may not have the column meta - fetch the first row and reset.
+		$currentIteratorIndex = $this->iteratorIndex;
+		$this->rewind();
+		$row = $this->fetch();
+		$fieldList = $row?->getFieldList() ?? [];
+		$this->rewind();
+		$this->iteratorIndex = $currentIteratorIndex;
+		return $fieldList;
+	}
+
 	public function rewind():void {
 		$this->statement->execute();
 		$this->currentRow = null;
