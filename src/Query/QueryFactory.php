@@ -60,19 +60,30 @@ class QueryFactory {
 		string $directory,
 		string $name,
 	):?string {
+		$invalidMatchExtension = null;
+
 		foreach(new DirectoryIterator($directory) as $fileInfo) {
 			if($fileInfo->isDot()
 				|| $fileInfo->isDir()) {
 				continue;
 			}
 
-			$this->getExtensionIfValid($fileInfo);
 			$fileNameNoExtension = strtok($fileInfo->getFilename(), ".");
 			if($fileNameNoExtension !== $name) {
 				continue;
 			}
 
-			return $fileInfo->getRealPath();
+			try {
+				$this->getExtensionIfValid($fileInfo);
+				return $fileInfo->getRealPath();
+			}
+			catch(QueryFileExtensionException) {
+				$invalidMatchExtension = strtolower($fileInfo->getExtension());
+			}
+		}
+
+		if(!is_null($invalidMatchExtension)) {
+			throw new QueryFileExtensionException($invalidMatchExtension);
 		}
 
 		return null;

@@ -255,4 +255,52 @@ class QueryFactoryTest extends TestCase {
 			Helper::deleteDir($basePath);
 		}
 	}
+
+	public function testFindQueryFilePathIgnoresUnrelatedInvalidExtensions():void {
+		$basePath = Helper::getTmpDir();
+		$queryDirectory = implode(DIRECTORY_SEPARATOR, [
+			$basePath,
+			"query",
+		]);
+		mkdir($queryDirectory, 0775, true);
+		file_put_contents("$queryDirectory/valid.sql", "select 1");
+		file_put_contents("$queryDirectory/other.sql~", "select 2");
+
+		try {
+			$sut = new QueryFactory($queryDirectory, new Driver(new DefaultSettings()));
+			$queryFilePath = $sut->findQueryFilePath("valid");
+
+			self::assertSame(
+				realpath("$queryDirectory/valid.sql"),
+				$queryFilePath
+			);
+		}
+		finally {
+			Helper::deleteDir($basePath);
+		}
+	}
+
+	public function testFindQueryFilePathPrefersSupportedExtensionOverEditorBackup():void {
+		$basePath = Helper::getTmpDir();
+		$queryDirectory = implode(DIRECTORY_SEPARATOR, [
+			$basePath,
+			"query",
+		]);
+		mkdir($queryDirectory, 0775, true);
+		file_put_contents("$queryDirectory/report.sql", "select 1");
+		file_put_contents("$queryDirectory/report.sql~", "select 2");
+
+		try {
+			$sut = new QueryFactory($queryDirectory, new Driver(new DefaultSettings()));
+			$queryFilePath = $sut->findQueryFilePath("report");
+
+			self::assertSame(
+				realpath("$queryDirectory/report.sql"),
+				$queryFilePath
+			);
+		}
+		finally {
+			Helper::deleteDir($basePath);
+		}
+	}
 }
