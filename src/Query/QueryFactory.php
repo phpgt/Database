@@ -218,20 +218,12 @@ class QueryFactory {
 
 	protected function throwCorrectException(Exception $exception):void {
 		$message = $exception->getMessage();
-
-		switch(get_class($exception)) {
-		case InvalidArgumentException::class:
-			$matches = [];
-			if(1 !== preg_match(
-					"/Database \[(.+)\] not configured/", $message, $matches)) {
-				throw $exception;
-			}
-
-			$connectionName = $matches[1];
-			throw new ConnectionNotConfiguredException($connectionName);
-
-		default:
+		$matches = [];
+		if(1 !== preg_match("/Database \[(.+)\] not configured/", $message, $matches)) {
 			throw $exception;
 		}
+
+		$connectionName = $matches[1];
+		throw new ConnectionNotConfiguredException($connectionName);
 	}
 }
