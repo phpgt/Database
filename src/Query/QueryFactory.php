@@ -61,10 +61,10 @@ class QueryFactory {
 		string $name,
 	):?string {
 		$invalidMatchExtension = null;
+		$validQueryFilePath = null;
 
 		foreach(new DirectoryIterator($directory) as $fileInfo) {
-			if($fileInfo->isDot()
-				|| $fileInfo->isDir()) {
+			if(!$fileInfo->isFile()) {
 				continue;
 			}
 
@@ -75,11 +75,15 @@ class QueryFactory {
 
 			try {
 				$this->getExtensionIfValid($fileInfo);
-				return $fileInfo->getRealPath();
+				$validQueryFilePath ??= $fileInfo->getRealPath();
 			}
 			catch(QueryFileExtensionException) {
 				$invalidMatchExtension = strtolower($fileInfo->getExtension());
 			}
+		}
+
+		if(!is_null($validQueryFilePath)) {
+			return $validQueryFilePath;
 		}
 
 		if(!is_null($invalidMatchExtension)) {
@@ -92,7 +96,7 @@ class QueryFactory {
 	protected function locateOverrideDirectory(string $classFilePath):?string {
 		$baseName = pathinfo($classFilePath, PATHINFO_FILENAME);
 		foreach(new DirectoryIterator(dirname($classFilePath)) as $fileInfo) {
-			if($fileInfo->isDot() || !$fileInfo->isDir()) {
+			if(!$fileInfo->isDir()) {
 				continue;
 			}
 
