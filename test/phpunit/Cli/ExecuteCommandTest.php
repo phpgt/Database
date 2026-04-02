@@ -247,6 +247,49 @@ class ExecuteCommandTest extends TestCase {
 		}
 	}
 
+	public function testExecuteWithForceResetsSqliteDatabaseAndRerunsFromMigrationOne():void {
+		$project = $this->createProjectDir();
+		$sqlitePath = str_replace("\\", "/", $project . DIRECTORY_SEPARATOR . "cli-test.db");
+		$this->writeConfigIni($project, $sqlitePath);
+		$this->createMigrations($project, 2);
+
+		$cwdBackup = getcwd();
+		chdir($project);
+		try {
+			$cmd = new ExecuteCommand();
+			$initialStreams = $this->makeStreamFiles();
+			$cmd->setStream($initialStreams["stream"]);
+			$cmd->run(new ArgumentValueList());
+
+			$settings = new Settings($project . DIRECTORY_SEPARATOR . "query", Settings::DRIVER_SQLITE, $sqlitePath);
+			$db = new Database($settings);
+			$db->executeSql("insert into `test` (`id`, `name`, `new_column_2`) values (1, 'before-force', 'value')");
+			$rowCountBeforeForce = $db->executeSql("select count(*) as c from `test`")->fetch()?->getInt("c");
+			self::assertSame(1, $rowCountBeforeForce);
+
+			unset($db);
+
+			$forceStreams = $this->makeStreamFiles();
+			$cmd->setStream($forceStreams["stream"]);
+			$args = new ArgumentValueList();
+			$args->set("force");
+			$cmd->run($args);
+
+			list("out" => $out) = $this->readFromFiles($forceStreams["out"], $forceStreams["err"]);
+			self::assertStringContainsString("Migration 1:", $out);
+			self::assertStringContainsString("2 migrations were completed successfully.", $out);
+
+			$dbAfterForce = new Database($settings);
+			$rowCountAfterForce = $dbAfterForce->executeSql("select count(*) as c from `test`")->fetch()?->getInt("c");
+			self::assertSame(0, $rowCountAfterForce);
+			$migrationCount = $dbAfterForce->executeSql("select count(*) as c from `_migration`")->fetch()?->getInt("c");
+			self::assertSame(2, $migrationCount);
+		}
+		finally {
+			chdir($cwdBackup);
+		}
+	}
+
 	public function testOptionalParameterListContainsCliOverrides():void {
 		$command = new ExecuteCommand();
 		$parameterNames = array_map(
