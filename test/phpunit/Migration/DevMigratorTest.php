@@ -146,4 +146,26 @@ class DevMigratorTest extends TestCase {
 		$this->expectException(MigrationSequenceOrderException::class);
 		$devMigrator->checkFileListOrder($devMigrator->getMigrationFileList());
 	}
+
+	public function testDevMigratorIgnoresNonNumericFilesAndThrowsOnResultingGap():void {
+		$project = $this->createProjectDir();
+		$databasePath = $project . DIRECTORY_SEPARATOR . "dev.sqlite";
+		$settings = $this->createSettings($project, $databasePath);
+		$devPath = $project . DIRECTORY_SEPARATOR . "query" . DIRECTORY_SEPARATOR . "_migration" . DIRECTORY_SEPARATOR . "dev";
+		mkdir($devPath, 0775, true);
+		file_put_contents($devPath . DIRECTORY_SEPARATOR . "001-first.sql", "select 1");
+		file_put_contents($devPath . DIRECTORY_SEPARATOR . "a002-second.sql", "select 1");
+		file_put_contents($devPath . DIRECTORY_SEPARATOR . "003-third.sql", "select 1");
+
+		$devMigrator = new DevMigrator($settings, $devPath);
+		$fileList = $devMigrator->getMigrationFileList();
+
+		self::assertSame([
+			$devPath . DIRECTORY_SEPARATOR . "001-first.sql",
+			$devPath . DIRECTORY_SEPARATOR . "003-third.sql",
+		], $fileList);
+
+		$this->expectException(MigrationSequenceOrderException::class);
+		$devMigrator->checkFileListOrder($fileList);
+	}
 }

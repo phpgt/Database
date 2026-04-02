@@ -62,6 +62,9 @@ class DevMigrator {
 		}
 
 		$fileList = glob("$this->path/*.sql");
+		$fileList = array_values(array_filter($fileList, function(string $file):bool {
+			return preg_match("/^\d+.*\.sql$/", basename($file)) === 1;
+		}));
 		sort($fileList);
 		return $fileList;
 	}
@@ -108,7 +111,7 @@ class DevMigrator {
 	public function extractNumberFromFilename(string $pathName):int {
 		$file = new SplFileInfo($pathName);
 		$filename = $file->getFilename();
-		preg_match("/(\d+)-?.*\.sql/", $filename, $matches);
+		preg_match("/^(\d+)-?.*\.sql$/", $filename, $matches);
 
 		if(!isset($matches[1])) {
 			throw new MigrationFileNameFormatException($filename);

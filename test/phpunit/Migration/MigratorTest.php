@@ -154,6 +154,28 @@ class MigratorTest extends TestCase {
 		$migrator->checkFileListOrder($outOfOrder);
 	}
 
+	public function testCheckFileListOrderIgnoresNonNumericFilesAndThrowsOnResultingGap():void {
+		$path = $this->getMigrationDirectory();
+		$files = [
+			"001-first.sql",
+			"a002-second.sql",
+			"003-third.sql",
+		];
+		$this->createFiles($files, $path);
+
+		$settings = $this->createSettings($path);
+		$migrator = new Migrator($settings, $path);
+		$actualFileList = $migrator->getMigrationFileList();
+
+		self::assertSame([
+			$path . DIRECTORY_SEPARATOR . "001-first.sql",
+			$path . DIRECTORY_SEPARATOR . "003-third.sql",
+		], $actualFileList);
+
+		$this->expectException(MigrationSequenceOrderException::class);
+		$migrator->checkFileListOrder($actualFileList);
+	}
+
 	/** @dataProvider dataMigrationFileList */
 	public function testCheckIntegrityGood(array $fileList) {
 		$path = $this->getMigrationDirectory();
@@ -529,6 +551,30 @@ class MigratorTest extends TestCase {
 		catch(Exception $exception) {}
 
 		self::assertNull($exception);
+	}
+
+	public function testPerformMigrationIgnoresNonNumericPrefixedSqlFiles():void {
+		$path = $this->getMigrationDirectory();
+		file_put_contents($path . DIRECTORY_SEPARATOR . "0001-create-test.sql", self::MIGRATION_CREATE);
+		file_put_contents(
+			$path . DIRECTORY_SEPARATOR . "a0002-ignored.sql",
+			"alter table `test` add `ignored_column` varchar(32)"
+		);
+
+		$settings = $this->createSettings($path);
+		$migrator = new Migrator($settings, $path);
+		$migrator->createMigrationTable();
+
+		$actualFileList = $migrator->getMigrationFileList();
+		self::assertSame([
+			$path . DIRECTORY_SEPARATOR . "0001-create-test.sql",
+		], $actualFileList);
+
+		$migrator->performMigration($actualFileList);
+
+		$db = new Database($settings);
+		$result = $db->executeSql("PRAGMA table_info(test);");
+		self::assertCount(2, $result->fetchAll());
 	}
 
 	/** @dataProvider dataMigrationFileList */
