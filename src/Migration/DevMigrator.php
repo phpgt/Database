@@ -1,49 +1,13 @@
 <?php /** @noinspection SqlNoDataSourceInspection */
 namespace Gt\Database\Migration;
 
-use Gt\Database\Connection\Settings;
-use Gt\Database\Database;
-use SplFileInfo;
-use SplFileObject;
-
-class DevMigrator {
+class DevMigrator extends AbstractMigrator {
 	const string COLUMN_FILE_NAME = "fileName";
 	const string COLUMN_QUERY_HASH = "queryHash";
 	const string COLUMN_MIGRATED_AT = "migratedAt";
 
-	const string STREAM_OUT = "out";
-	const string STREAM_ERROR = "error";
-
-	protected ?SplFileObject $streamError = null;
-	protected ?SplFileObject $streamOut = null;
-
-	protected string $driver;
-	protected Database $dbClient;
-	protected string $path;
-	protected string $tableName;
-
-	public function __construct(
-		Settings $settings,
-		string $path,
-		string $tableName = "_migration_dev"
-	) {
-		$this->driver = $settings->getDriver();
-		$this->path = $path;
-		$this->tableName = $tableName;
-
-		if($this->driver !== Settings::DRIVER_SQLITE) {
-			$settings = $settings->withoutSchema();
-		}
-
-		$this->dbClient = new Database($settings);
-	}
-
-	public function setOutput(
-		SplFileObject $out,
-		?SplFileObject $error = null
-	):void {
-		$this->streamOut = $out;
-		$this->streamError = $error;
+	protected function getDefaultTableName():string {
+		return "_migration_dev";
 	}
 
 	public function createMigrationTable():void {
@@ -53,46 +17,6 @@ class DevMigrator {
 			"`" . self::COLUMN_QUERY_HASH . "` varchar(32) not null,",
 			"`" . self::COLUMN_MIGRATED_AT . "` datetime not null )",
 		]));
-	}
-
-	/** @return array<string> */
-	public function getMigrationFileList():array {
-		if(!is_dir($this->path)) {
-			return [];
-		}
-
-		$fileList = glob("$this->path/*.sql");
-		$fileList = array_values(array_filter($fileList, function(string $file):bool {
-			return preg_match("/^\d+.*\.sql$/", basename($file)) === 1;
-		}));
-		sort($fileList);
-		return $fileList;
-	}
-
-	/** @param array<string> $fileList */
-	public function checkFileListOrder(array $fileList):void {
-		$previousNumber = null;
-
-		foreach($fileList as $file) {
-			$migrationNumber = $this->extractNumberFromFilename($file);
-
-			if(!is_null($previousNumber)) {
-				if($migrationNumber === $previousNumber) {
-					throw new MigrationSequenceOrderException("Duplicate: $migrationNumber");
-				}
-				if($migrationNumber < $previousNumber) {
-					throw new MigrationSequenceOrderException("Out of order: $migrationNumber before $previousNumber");
-				}
-				if($migrationNumber !== $previousNumber + 1) {
-					throw new MigrationSequenceOrderException("Gap: $previousNumber before $migrationNumber");
-				}
-			}
-			elseif($migrationNumber !== 1) {
-				throw new MigrationSequenceOrderException("Gap: expected 1, got $migrationNumber");
-			}
-
-			$previousNumber = $migrationNumber;
-		}
 	}
 
 	/** @param array<string> $migrationFileList */
@@ -108,22 +32,9 @@ class DevMigrator {
 		}
 	}
 
-	public function extractNumberFromFilename(string $pathName):int {
-		$file = new SplFileInfo($pathName);
-		$filename = $file->getFilename();
-		preg_match("/^(\d+)-?.*\.sql$/", $filename, $matches);
-
-		if(!isset($matches[1])) {
-			throw new MigrationFileNameFormatException($filename);
-		}
-
-		return (int)$matches[1];
-	}
-
 	/** @param array<string> $migrationFileList */
 	public function performMigration(array $migrationFileList):int {
 		$numCompleted = 0;
-		$sqlStatementSplitter = new SqlStatementSplitter();
 
 		foreach($migrationFileList as $file) {
 			$fileName = basename($file);
@@ -133,12 +44,7 @@ class DevMigrator {
 
 			$fileNumber = $this->extractNumberFromFilename($file);
 			$this->output("Dev migration $fileNumber: `$file`.");
-			$md5 = md5_file($file);
-
-			foreach($sqlStatementSplitter->split(file_get_contents($file)) as $sql) {
-				$this->dbClient->executeSql($sql);
-			}
-
+			$md5 = $this->executeSqlFile($file);
 			$this->recordMigrationSuccess($fileName, $md5);
 			$numCompleted++;
 		}
@@ -234,11 +140,7 @@ class DevMigrator {
 	}
 
 	protected function recordMigrationSuccess(string $fileName, string $hash):void {
-		$now = "now()";
-
-		if($this->driver === Settings::DRIVER_SQLITE) {
-			$now = "datetime('now')";
-		}
+		$now = $this->nowExpression();
 
 		$this->dbClient->executeSql(implode("\n", [
 			"insert into `{$this->tableName}` (",
@@ -256,21 +158,5 @@ class DevMigrator {
 			"delete from `{$this->tableName}`",
 			"where `" . self::COLUMN_FILE_NAME . "` = ?",
 		]), [$fileName]);
-	}
-
-	protected function output(
-		string $message,
-		string $streamName = self::STREAM_OUT
-	):void {
-		$stream = $this->streamOut ?? null;
-		if($streamName === self::STREAM_ERROR) {
-			$stream = $this->streamError;
-		}
-
-		if(is_null($stream)) {
-			return;
-		}
-
-		$stream->fwrite($message . PHP_EOL);
 	}
 }
