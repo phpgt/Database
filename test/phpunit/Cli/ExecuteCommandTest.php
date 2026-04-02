@@ -145,6 +145,29 @@ class ExecuteCommandTest extends TestCase {
 		self::assertSame("sqlite", $config->get("database.driver"));
 	}
 
+	public function testGetDefaultPathReturnsNullWhenVendorDefaultDoesNotExist():void {
+		$project = $this->createProjectDir();
+		$command = new ExecuteCommand();
+		$reflectionMethod = new \ReflectionMethod($command, "getDefaultPath");
+
+		self::assertNull($reflectionMethod->invoke($command, $project));
+	}
+
+	public function testGetDefaultPathFindsVendorConfigDefaultIni():void {
+		$project = $this->createProjectDir();
+		$vendorConfigDir = $project . DIRECTORY_SEPARATOR . "vendor"
+			. DIRECTORY_SEPARATOR . "phpgt"
+			. DIRECTORY_SEPARATOR . "webengine";
+		mkdir($vendorConfigDir, 0775, true);
+		$defaultConfig = $vendorConfigDir . DIRECTORY_SEPARATOR . "config.default.ini";
+		file_put_contents($defaultConfig, "[database]\ndriver = sqlite\n");
+
+		$command = new ExecuteCommand();
+		$reflectionMethod = new \ReflectionMethod($command, "getDefaultPath");
+
+		self::assertSame($defaultConfig, $reflectionMethod->invoke($command, $project));
+	}
+
 	public function testExecuteMigratesAll():void {
 		$project = $this->createProjectDir();
 		$sqlitePath = str_replace("\\", "/", $project . DIRECTORY_SEPARATOR . "cli-test.db");
@@ -373,6 +396,97 @@ class ExecuteCommandTest extends TestCase {
 			self::assertFileDoesNotExist($devFiles[1]);
 			$mergedName = preg_replace("/^\d+/", "0002", basename($devFiles[0]));
 			self::assertFileExists($project . DIRECTORY_SEPARATOR . "query" . DIRECTORY_SEPARATOR . "_migration" . DIRECTORY_SEPARATOR . $mergedName);
+		}
+		finally {
+			chdir($cwdBackup);
+		}
+	}
+
+	public function testExecuteWithDevReportsIntegrityErrorWhenAppliedDevFileChanges():void {
+		$project = $this->createProjectDir();
+		$sqlitePath = str_replace("\\", "/", $project . DIRECTORY_SEPARATOR . "cli-test.db");
+		$this->writeConfigIni($project, $sqlitePath);
+		$this->createMigrations($project, 1);
+		$devFiles = $this->createDevMigrations($project, 1);
+
+		$cwdBackup = getcwd();
+		chdir($project);
+		try {
+			$cmd = new ExecuteCommand();
+			$streams = $this->makeStreamFiles();
+			$cmd->setStream($streams["stream"]);
+
+			$args = new ArgumentValueList();
+			$args->set("dev");
+			$cmd->run($args);
+
+			file_put_contents($devFiles[0], "alter table `test` add `changed_dev_column` varchar(32)");
+
+			$errorStreams = $this->makeStreamFiles();
+			$cmd->setStream($errorStreams["stream"]);
+			$cmd->run($args);
+
+			list("out" => $out) = $this->readFromFiles($errorStreams["out"], $errorStreams["err"]);
+			self::assertStringContainsString("integrity error migrating dev file", $out);
+		}
+		finally {
+			chdir($cwdBackup);
+		}
+	}
+
+	public function testExecuteWithDevMergeReportsIntegrityErrorWhenAppliedDevFileChanges():void {
+		$project = $this->createProjectDir();
+		$sqlitePath = str_replace("\\", "/", $project . DIRECTORY_SEPARATOR . "cli-test.db");
+		$this->writeConfigIni($project, $sqlitePath);
+		$this->createMigrations($project, 1);
+		$devFiles = $this->createDevMigrations($project, 1);
+
+		$cwdBackup = getcwd();
+		chdir($project);
+		try {
+			$cmd = new ExecuteCommand();
+			$devStreams = $this->makeStreamFiles();
+			$cmd->setStream($devStreams["stream"]);
+
+			$devArgs = new ArgumentValueList();
+			$devArgs->set("dev");
+			$cmd->run($devArgs);
+
+			file_put_contents($devFiles[0], "alter table `test` add `changed_dev_column` varchar(32)");
+
+			$mergeStreams = $this->makeStreamFiles();
+			$cmd->setStream($mergeStreams["stream"]);
+			$mergeArgs = new ArgumentValueList();
+			$mergeArgs->set("dev-merge");
+			$cmd->run($mergeArgs);
+
+			list("out" => $out) = $this->readFromFiles($mergeStreams["out"], $mergeStreams["err"]);
+			self::assertStringContainsString("integrity error merging dev migration file", $out);
+		}
+		finally {
+			chdir($cwdBackup);
+		}
+	}
+
+	public function testExecuteWithDevMergeReportsNoDevMigrationsToMerge():void {
+		$project = $this->createProjectDir();
+		$sqlitePath = str_replace("\\", "/", $project . DIRECTORY_SEPARATOR . "cli-test.db");
+		$this->writeConfigIni($project, $sqlitePath);
+		$this->createMigrations($project, 1);
+
+		$cwdBackup = getcwd();
+		chdir($project);
+		try {
+			$cmd = new ExecuteCommand();
+			$streams = $this->makeStreamFiles();
+			$cmd->setStream($streams["stream"]);
+
+			$args = new ArgumentValueList();
+			$args->set("dev-merge");
+			$cmd->run($args);
+
+			list("out" => $out) = $this->readFromFiles($streams["out"], $streams["err"]);
+			self::assertStringContainsString("No dev migrations to merge.", $out);
 		}
 		finally {
 			chdir($cwdBackup);

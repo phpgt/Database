@@ -420,7 +420,6 @@ class MigratorTest extends TestCase {
 
 	/**
 	 * @dataProvider dataMigrationFileList
-	 * @runInSeparateProcess
 	 */
 	public function testPerformMigrationGood(array $fileList):void {
 		$path = $this->getMigrationDirectory();
