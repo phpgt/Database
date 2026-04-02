@@ -273,6 +273,10 @@ class Migrator {
 		]), [$number, $hash]);
 	}
 
+	public function markMigrationApplied(int $number, string $hash):void {
+		$this->recordMigrationSuccess($number, $hash);
+	}
+
 	/**
 	 * @param int $numberToForce A null-hashed migration will be marked as
 	 * successful with this number. This will allow the next number to be
