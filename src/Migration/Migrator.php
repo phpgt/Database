@@ -27,12 +27,14 @@ class Migrator {
 	protected string $tableName;
 	protected string $charset;
 	protected string $collate;
+	protected Settings $settings;
 
 	public function __construct(
 		Settings $settings,
 		string $path,
 		string $tableName = "_migration"
 	) {
+		$this->settings = clone $settings;
 		$this->schema = $settings->getSchema();
 		$this->path = $path;
 		$this->tableName = $tableName;
@@ -298,6 +300,14 @@ class Migrator {
 	 */
 	public function deleteAndRecreateSchema():void {
 		if($this->driver === Settings::DRIVER_SQLITE) {
+			unset($this->dbClient);
+
+			if($this->schema !== Settings::SCHEMA_IN_MEMORY
+			&& is_file($this->schema)) {
+				unlink($this->schema);
+			}
+
+			$this->dbClient = new Database($this->settings);
 			return;
 		}
 
