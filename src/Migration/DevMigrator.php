@@ -80,6 +80,12 @@ class DevMigrator {
 				if($migrationNumber < $previousNumber) {
 					throw new MigrationSequenceOrderException("Out of order: $migrationNumber before $previousNumber");
 				}
+				if($migrationNumber !== $previousNumber + 1) {
+					throw new MigrationSequenceOrderException("Gap: $previousNumber before $migrationNumber");
+				}
+			}
+			elseif($migrationNumber !== 1) {
+				throw new MigrationSequenceOrderException("Gap: expected 1, got $migrationNumber");
 			}
 
 			$previousNumber = $migrationNumber;

@@ -114,12 +114,9 @@ class MigratorTest extends TestCase {
 		$settings = $this->createSettings($path);
 		$migrator = new Migrator($settings, $path);
 		$actualFileList = $migrator->getMigrationFileList();
-		$exception = null;
-		try {
-			$migrator->checkFileListOrder($actualFileList);
-		}
-		catch (Exception $exception) {}
-		self::assertNull($exception, "No exception should be thrown for missing sequence numbers as long as order is increasing and non-duplicated");
+
+		$this->expectException(MigrationSequenceOrderException::class);
+		$migrator->checkFileListOrder($actualFileList);
 	}
 
 	/** @dataProvider dataMigrationFileListDuplicate */
@@ -822,7 +819,7 @@ class MigratorTest extends TestCase {
 	}
 
 	/**
-	 * New tests for migrating from a specific file number and handling gaps
+	 * New tests for migrating from a specific file number.
 	 */
 	/** @dataProvider dataMigrationFileList */
 	public function testPerformMigrationFromSpecificNumber(array $fileList) {
@@ -866,9 +863,9 @@ class MigratorTest extends TestCase {
 	}
 
 	/** @dataProvider dataMigrationFileListMissing */
-	public function testPerformMigrationFromSpecificNumberWithGaps(array $fileList) {
+	public function testCheckFileListOrderThrowsOnGapsWhenMigratingFromSpecificNumber(array $fileList) {
 		$path = $this->getMigrationDirectory();
-		$this->createMigrationFiles($fileList, $path);
+		$this->createFiles($fileList, $path);
 		$settings = $this->createSettings($path);
 		$migrator = new Migrator($settings, $path);
 
@@ -876,42 +873,8 @@ class MigratorTest extends TestCase {
 			return implode(DIRECTORY_SEPARATOR, [ $path, $file ]);
 		}, $fileList);
 
-		// Build the list of actual migration numbers present (with gaps allowed)
-		$numbers = array_map(function($file) use ($migrator) {
-			return $migrator->extractNumberFromFilename($file);
-		}, $absoluteFileList);
-		sort($numbers);
-
-		// Pick a start number from the set (not the last one)
-		$startNumber = $numbers[(int)floor(count($numbers) / 2)];
-		$from = $startNumber - 1;
-
-		$migrator->createMigrationTable();
-		if($from >= 1) {
-			$db = new Database($settings);
-			$db->executeSql(self::MIGRATION_CREATE);
-		}
-
-		$streamOut = new SplFileObject("php://memory", "w");
-		$migrator->setOutput($streamOut);
-
-		$executed = $migrator->performMigration($absoluteFileList, $from);
-
-		$expected = 0;
-		foreach($numbers as $n) {
-			if($n >= $startNumber) {
-				$expected++;
-			}
-		}
-
-		$streamOut->rewind();
-		$output = $streamOut->fread(4096);
-		self::assertMatchesRegularExpression("/Migration\\s+{$startNumber}:/", $output);
-		for($n = 1; $n < $startNumber; $n++) {
-			self::assertStringNotContainsString("Migration $n:", $output);
-		}
-		self::assertStringContainsString("$expected migrations were completed successfully.", $output);
-		self::assertSame($expected, $executed);
+		$this->expectException(MigrationSequenceOrderException::class);
+		$migrator->checkFileListOrder($absoluteFileList);
 	}
 
 	protected function createFiles(array $files, string $path):void {

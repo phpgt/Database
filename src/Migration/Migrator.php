@@ -125,11 +125,9 @@ class Migrator {
 	/** @param array<string> $fileList */
 	public function checkFileListOrder(array $fileList):void {
 		$previousNumber = null;
-		$sequence = [];
 
 		foreach($fileList as $file) {
 			$migrationNumber = $this->extractNumberFromFilename($file);
-			$sequence []= $migrationNumber;
 
 			if(!is_null($previousNumber)) {
 				if($migrationNumber === $previousNumber) {
@@ -138,6 +136,12 @@ class Migrator {
 				if($migrationNumber < $previousNumber) {
 					throw new MigrationSequenceOrderException("Out of order: $migrationNumber before $previousNumber");
 				}
+				if($migrationNumber !== $previousNumber + 1) {
+					throw new MigrationSequenceOrderException("Gap: $previousNumber before $migrationNumber");
+				}
+			}
+			elseif($migrationNumber !== 1) {
+				throw new MigrationSequenceOrderException("Gap: expected 1, got $migrationNumber");
 			}
 
 			$previousNumber = $migrationNumber;

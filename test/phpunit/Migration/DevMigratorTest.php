@@ -5,6 +5,7 @@ use Gt\Database\Connection\Settings;
 use Gt\Database\Database;
 use Gt\Database\Migration\DevMigrator;
 use Gt\Database\Migration\MigrationIntegrityException;
+use Gt\Database\Migration\MigrationSequenceOrderException;
 use Gt\Database\Migration\Migrator;
 use Gt\Database\Test\Helper\Helper;
 use PHPUnit\Framework\TestCase;
@@ -114,5 +115,35 @@ class DevMigratorTest extends TestCase {
 		self::assertFileDoesNotExist($devFiles[1]);
 		self::assertSame([], $devMigrator->getMigrationFileList());
 		self::assertSame(3, $migrator->getMigrationCount());
+	}
+
+	public function testDevMigratorThrowsOnGapsInSequence():void {
+		$project = $this->createProjectDir();
+		$databasePath = $project . DIRECTORY_SEPARATOR . "dev.sqlite";
+		$settings = $this->createSettings($project, $databasePath);
+		$devPath = $project . DIRECTORY_SEPARATOR . "query" . DIRECTORY_SEPARATOR . "_migration" . DIRECTORY_SEPARATOR . "dev";
+		mkdir($devPath, 0775, true);
+		file_put_contents($devPath . DIRECTORY_SEPARATOR . "001-feature.sql", "select 1");
+		file_put_contents($devPath . DIRECTORY_SEPARATOR . "003-feature.sql", "select 1");
+
+		$devMigrator = new DevMigrator($settings, $devPath);
+
+		$this->expectException(MigrationSequenceOrderException::class);
+		$devMigrator->checkFileListOrder($devMigrator->getMigrationFileList());
+	}
+
+	public function testDevMigratorThrowsOnDuplicateSequenceNumbers():void {
+		$project = $this->createProjectDir();
+		$databasePath = $project . DIRECTORY_SEPARATOR . "dev.sqlite";
+		$settings = $this->createSettings($project, $databasePath);
+		$devPath = $project . DIRECTORY_SEPARATOR . "query" . DIRECTORY_SEPARATOR . "_migration" . DIRECTORY_SEPARATOR . "dev";
+		mkdir($devPath, 0775, true);
+		file_put_contents($devPath . DIRECTORY_SEPARATOR . "001-feature-a.sql", "select 1");
+		file_put_contents($devPath . DIRECTORY_SEPARATOR . "001-feature-b.sql", "select 1");
+
+		$devMigrator = new DevMigrator($settings, $devPath);
+
+		$this->expectException(MigrationSequenceOrderException::class);
+		$devMigrator->checkFileListOrder($devMigrator->getMigrationFileList());
 	}
 }
