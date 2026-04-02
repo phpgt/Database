@@ -60,19 +60,34 @@ class QueryFactory {
 		string $directory,
 		string $name,
 	):?string {
+		$invalidMatchExtension = null;
+		$validQueryFilePath = null;
+
 		foreach(new DirectoryIterator($directory) as $fileInfo) {
-			if($fileInfo->isDot()
-				|| $fileInfo->isDir()) {
+			if(!$fileInfo->isFile()) {
 				continue;
 			}
 
-			$this->getExtensionIfValid($fileInfo);
 			$fileNameNoExtension = strtok($fileInfo->getFilename(), ".");
 			if($fileNameNoExtension !== $name) {
 				continue;
 			}
 
-			return $fileInfo->getRealPath();
+			try {
+				$this->getExtensionIfValid($fileInfo);
+				$validQueryFilePath ??= $fileInfo->getRealPath();
+			}
+			catch(QueryFileExtensionException) {
+				$invalidMatchExtension = strtolower($fileInfo->getExtension());
+			}
+		}
+
+		if(!is_null($validQueryFilePath)) {
+			return $validQueryFilePath;
+		}
+
+		if(!is_null($invalidMatchExtension)) {
+			throw new QueryFileExtensionException($invalidMatchExtension);
 		}
 
 		return null;
@@ -81,7 +96,7 @@ class QueryFactory {
 	protected function locateOverrideDirectory(string $classFilePath):?string {
 		$baseName = pathinfo($classFilePath, PATHINFO_FILENAME);
 		foreach(new DirectoryIterator(dirname($classFilePath)) as $fileInfo) {
-			if($fileInfo->isDot() || !$fileInfo->isDir()) {
+			if(!$fileInfo->isDir()) {
 				continue;
 			}
 
@@ -207,20 +222,12 @@ class QueryFactory {
 
 	protected function throwCorrectException(Exception $exception):void {
 		$message = $exception->getMessage();
-
-		switch(get_class($exception)) {
-		case InvalidArgumentException::class:
-			$matches = [];
-			if(1 !== preg_match(
-					"/Database \[(.+)\] not configured/", $message, $matches)) {
-				throw $exception;
-			}
-
-			$connectionName = $matches[1];
-			throw new ConnectionNotConfiguredException($connectionName);
-
-		default:
+		$matches = [];
+		if(1 !== preg_match("/Database \[(.+)\] not configured/", $message, $matches)) {
 			throw $exception;
 		}
+
+		$connectionName = $matches[1];
+		throw new ConnectionNotConfiguredException($connectionName);
 	}
 }
