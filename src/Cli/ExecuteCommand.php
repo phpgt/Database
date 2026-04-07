@@ -12,7 +12,7 @@ use Gt\Database\StatementExecutionException;
 use Gt\Database\StatementPreparationException;
 
 class ExecuteCommand extends Command {
-	public function run(?ArgumentValueList $arguments = null):void {
+	public function run(?ArgumentValueList $arguments = null):int {
 		$repoBasePath = getcwd();
 		$defaultPath = $this->getDefaultPath($repoBasePath);
 		$config = $this->getConfig($repoBasePath, $defaultPath);
@@ -38,6 +38,7 @@ class ExecuteCommand extends Command {
 		$runFrom = $this->calculateResetNumber($arguments, $migrationFileList, $migrator, $migrationCount);
 
 		$this->executeMigrations($migrator, $migrationFileList, $runFrom);
+		return 0;
 	}
 
 	/** Determine whether the --force flag was provided. */
