@@ -576,6 +576,76 @@ class MigratorTest extends TestCase {
 		self::assertCount(2, $result->fetchAll());
 	}
 
+	public function testPerformMigrationRecordsCompletedStatementsAndResumesPartialMigration():void {
+		$path = $this->getMigrationDirectory();
+		$file = $path . DIRECTORY_SEPARATOR . "0001-create-and-alter.sql";
+		file_put_contents($file, implode(";\n", [
+			"create table `test` (`id` int primary key)",
+			"insert into `helper` (`id`) values (1)",
+			"alter table `test` add `name` varchar(32)",
+		]) . ";");
+
+		$settings = $this->createSettings($path);
+		$migrator = new Migrator($settings, $path);
+		$migrator->createMigrationTable();
+
+		try {
+			$migrator->performMigration([$file]);
+			self::fail("The migration should fail until the helper table exists.");
+		}
+		catch(DatabaseException) {
+		}
+
+		$db = new Database($settings);
+		$progressRow = $db->executeSql(implode("\n", [
+			"select `lastStatement`",
+			"from `_migration`",
+			"where `queryNumber` = 1",
+		]))->fetch();
+		self::assertSame(1, $progressRow?->getInt("lastStatement"));
+
+		$db->executeSql("create table `helper` (`id` int primary key)");
+		self::assertSame(0, $migrator->getContiguousCompletedMigrationCount([$file]));
+		self::assertSame(1, $migrator->performMigration([$file]));
+
+		$finalProgressRow = $db->executeSql(implode("\n", [
+			"select `lastStatement`",
+			"from `_migration`",
+			"where `queryNumber` = 1",
+		]))->fetch();
+		self::assertSame(3, $finalProgressRow?->getInt("lastStatement"));
+		$result = $db->executeSql("PRAGMA table_info(test);");
+		self::assertCount(2, $result->fetchAll());
+	}
+
+	public function testCheckIntegrityThrowsWhenPartialMigrationFileChanges():void {
+		$path = $this->getMigrationDirectory();
+		$file = $path . DIRECTORY_SEPARATOR . "0001-partial-integrity.sql";
+		file_put_contents($file, implode(";\n", [
+			"create table `test` (`id` int primary key)",
+			"insert into `helper` (`id`) values (1)",
+		]) . ";");
+
+		$settings = $this->createSettings($path);
+		$migrator = new Migrator($settings, $path);
+		$migrator->createMigrationTable();
+
+		try {
+			$migrator->performMigration([$file]);
+			self::fail("The migration should fail until the helper table exists.");
+		}
+		catch(DatabaseException) {
+		}
+
+		file_put_contents($file, implode(";\n", [
+			"create table `test` (`id` int primary key)",
+			"insert into `helper` (`id`) values (2)",
+		]) . ";");
+
+		$this->expectException(MigrationIntegrityException::class);
+		$migrator->checkIntegrity([$file]);
+	}
+
 	/** @dataProvider dataMigrationFileList */
 	public function testMigrationThrowsExceptionWhenNoMigrationTable(array $fileList) {
 		$path = $this->getMigrationDirectory();

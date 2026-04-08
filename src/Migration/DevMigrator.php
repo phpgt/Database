@@ -15,8 +15,10 @@ class DevMigrator extends AbstractMigrator {
 			"create table if not exists `{$this->tableName}` (",
 			"`" . self::COLUMN_FILE_NAME . "` varchar(255) primary key,",
 			"`" . self::COLUMN_QUERY_HASH . "` varchar(32) not null,",
+			"`" . self::COLUMN_LAST_STATEMENT . "` int null,",
 			"`" . self::COLUMN_MIGRATED_AT . "` datetime not null )",
 		]));
+		$this->ensureColumnExists(self::COLUMN_LAST_STATEMENT, "int null");
 	}
 
 	/** @param array<string> $migrationFileList */
@@ -38,14 +40,34 @@ class DevMigrator extends AbstractMigrator {
 
 		foreach($migrationFileList as $file) {
 			$fileName = basename($file);
-			if($this->hasMigrationBeenApplied($fileName)) {
+			$fileNumber = $this->extractNumberFromFilename($file);
+			$statementList = $this->splitSqlFile($file);
+			$totalStatements = count($statementList);
+			$md5 = md5_file($file);
+			$progress = $this->getStoredProgress($fileName);
+			if($progress && $progress["hash"] !== $md5) {
+				throw new MigrationIntegrityException($file);
+			}
+
+			$lastCompletedStatement = $this->resolveLastCompletedStatement(
+				$progress,
+				$totalStatements
+			);
+			if($lastCompletedStatement >= $totalStatements) {
 				continue;
 			}
 
-			$fileNumber = $this->extractNumberFromFilename($file);
 			$this->output("Dev migration $fileNumber: `$file`.");
-			$md5 = $this->executeSqlFile($file);
-			$this->recordMigrationSuccess($fileName, $md5);
+			foreach($statementList as $statementIndex => $sql) {
+				$statementNumber = $statementIndex + 1;
+				if($statementNumber <= $lastCompletedStatement) {
+					continue;
+				}
+
+				$this->dbClient->executeSql($sql);
+				$this->recordMigrationProgress($fileName, $md5, $statementNumber);
+			}
+
 			$numCompleted++;
 		}
 
@@ -81,7 +103,8 @@ class DevMigrator extends AbstractMigrator {
 
 		foreach($migrationFileList as $file) {
 			$fileName = basename($file);
-			$storedHash = $this->getStoredHash($fileName);
+			$storedProgress = $this->getStoredProgress($fileName);
+			$storedHash = $storedProgress["hash"] ?? null;
 			if(!$storedHash) {
 				throw new MigrationIntegrityException($file);
 			}
@@ -93,7 +116,11 @@ class DevMigrator extends AbstractMigrator {
 			}
 
 			rename($file, $targetFile);
-			$migrator->markMigrationApplied($nextNumber, $storedHash);
+			$migrator->markMigrationApplied(
+				$nextNumber,
+				$storedHash,
+				$this->countSqlStatements($targetFile)
+			);
 			$this->deleteMigrationRecord($fileName);
 			$this->output("Merged dev migration `$fileName` to `$targetName`.");
 			$nextNumber++;
@@ -105,18 +132,39 @@ class DevMigrator extends AbstractMigrator {
 	}
 
 	protected function hasMigrationBeenApplied(string $fileName):bool {
-		return (bool)$this->getStoredHash($fileName);
+		$progress = $this->getStoredProgress($fileName);
+		return !is_null($progress) && !is_null($progress["hash"]);
 	}
 
 	protected function getStoredHash(string $fileName):?string {
+		return $this->getStoredProgress($fileName)["hash"] ?? null;
+	}
+
+	/** @return array{hash: ?string, lastStatement: ?int}|null */
+	protected function getStoredProgress(string $fileName):?array {
+		$selectList = "`" . self::COLUMN_QUERY_HASH . "`";
+		if($this->tableHasColumn(self::COLUMN_LAST_STATEMENT)) {
+			$selectList .= ", `" . self::COLUMN_LAST_STATEMENT . "`";
+		}
+		else {
+			$selectList .= ", null as `" . self::COLUMN_LAST_STATEMENT . "`";
+		}
+
 		$result = $this->dbClient->executeSql(implode("\n", [
-			"select `" . self::COLUMN_QUERY_HASH . "`",
+			"select $selectList",
 			"from `{$this->tableName}`",
 			"where `" . self::COLUMN_FILE_NAME . "` = ?",
 			"limit 1",
 		]), [$fileName]);
+		$row = $result->fetch();
+		if(!$row) {
+			return null;
+		}
 
-		return ($result->fetch())?->getString(self::COLUMN_QUERY_HASH);
+		return [
+			"hash" => $row->getString(self::COLUMN_QUERY_HASH),
+			"lastStatement" => $row->getInt(self::COLUMN_LAST_STATEMENT),
+		];
 	}
 
 	protected function getNextMainMigrationNumber(Migrator $migrator):int {
@@ -140,17 +188,38 @@ class DevMigrator extends AbstractMigrator {
 	}
 
 	protected function recordMigrationSuccess(string $fileName, string $hash):void {
+		$this->recordMigrationProgress($fileName, $hash, null);
+	}
+
+	protected function recordMigrationProgress(
+		string $fileName,
+		string $hash,
+		?int $lastStatement
+	):void {
 		$now = $this->nowExpression();
+		$existingState = $this->getStoredProgress($fileName);
+
+		if($existingState) {
+			$this->dbClient->executeSql(implode("\n", [
+				"update `{$this->tableName}`",
+				"set `" . self::COLUMN_QUERY_HASH . "` = ?,",
+				"`" . self::COLUMN_LAST_STATEMENT . "` = ?,",
+				"`" . self::COLUMN_MIGRATED_AT . "` = $now",
+				"where `" . self::COLUMN_FILE_NAME . "` = ?",
+			]), [$hash, $lastStatement, $fileName]);
+			return;
+		}
 
 		$this->dbClient->executeSql(implode("\n", [
 			"insert into `{$this->tableName}` (",
 			"`" . self::COLUMN_FILE_NAME . "`, ",
 			"`" . self::COLUMN_QUERY_HASH . "`, ",
+			"`" . self::COLUMN_LAST_STATEMENT . "`, ",
 			"`" . self::COLUMN_MIGRATED_AT . "` ",
 			") values (",
-			"?, ?, $now",
+			"?, ?, ?, $now",
 			")",
-		]), [$fileName, $hash]);
+		]), [$fileName, $hash, $lastStatement]);
 	}
 
 	protected function deleteMigrationRecord(string $fileName):void {
@@ -158,5 +227,21 @@ class DevMigrator extends AbstractMigrator {
 			"delete from `{$this->tableName}`",
 			"where `" . self::COLUMN_FILE_NAME . "` = ?",
 		]), [$fileName]);
+	}
+
+	/** @param array{hash: ?string, lastStatement: ?int}|null $progress */
+	protected function resolveLastCompletedStatement(
+		?array $progress,
+		int $totalStatements
+	):int {
+		if(!$progress) {
+			return 0;
+		}
+
+		if(is_null($progress["lastStatement"])) {
+			return $totalStatements;
+		}
+
+		return $progress["lastStatement"];
 	}
 }

@@ -83,6 +83,18 @@ class ExecuteCommandTest extends TestCase {
 		return $fileList;
 	}
 
+	private function createMultiStatementMigration(
+		string $projectRoot,
+		string $filename,
+		string $sql
+	):string {
+		$migDir = $projectRoot . DIRECTORY_SEPARATOR . "query" . DIRECTORY_SEPARATOR . "_migration";
+		mkdir($migDir, 0775, true);
+		$path = $migDir . DIRECTORY_SEPARATOR . $filename;
+		file_put_contents($path, $sql);
+		return $path;
+	}
+
 	private function makeStreamFiles():array {
 		$dir = Helper::getTmpDir();
 		// Ensure the directory exists to prevent tempnam() notices
@@ -313,6 +325,60 @@ class ExecuteCommandTest extends TestCase {
 		}
 	}
 
+	public function testExecuteResumesPartiallyAppliedMigrationFromNextStatement():void {
+		$project = $this->createProjectDir();
+		$sqlitePath = str_replace("\\", "/", $project . DIRECTORY_SEPARATOR . "cli-test.db");
+		$this->writeConfigIni($project, $sqlitePath);
+		$this->createMultiStatementMigration(
+			$project,
+			"0001-partial.sql",
+			implode(";\n", [
+				"create table `test` (`id` int primary key)",
+				"insert into `helper` (`id`) values (1)",
+				"alter table `test` add `name` varchar(32)",
+			]) . ";"
+		);
+
+		$cwdBackup = getcwd();
+		chdir($project);
+		try {
+			$cmd = new ExecuteCommand();
+			$firstStreams = $this->makeStreamFiles();
+			$cmd->setStream($firstStreams["stream"]);
+			$cmd->run(new ArgumentValueList());
+
+			$settings = new Settings($project . DIRECTORY_SEPARATOR . "query", Settings::DRIVER_SQLITE, $sqlitePath);
+			$db = new Database($settings);
+			$progressRow = $db->executeSql(implode("\n", [
+				"select `lastStatement`",
+				"from `_migration`",
+				"where `queryNumber` = 1",
+			]))->fetch();
+			self::assertSame(1, $progressRow?->getInt("lastStatement"));
+
+			$db->executeSql("create table `helper` (`id` int primary key)");
+
+			$resumeStreams = $this->makeStreamFiles();
+			$cmd->setStream($resumeStreams["stream"]);
+			$cmd->run(new ArgumentValueList());
+
+			list("out" => $out) = $this->readFromFiles($resumeStreams["out"], $resumeStreams["err"]);
+			self::assertStringContainsString("1 migrations were completed successfully.", $out);
+
+			$finalProgressRow = $db->executeSql(implode("\n", [
+				"select `lastStatement`",
+				"from `_migration`",
+				"where `queryNumber` = 1",
+			]))->fetch();
+			self::assertSame(3, $finalProgressRow?->getInt("lastStatement"));
+			$result = $db->executeSql("PRAGMA table_info(test);");
+			self::assertCount(2, $result->fetchAll());
+		}
+		finally {
+			chdir($cwdBackup);
+		}
+	}
+
 	public function testOptionalParameterListContainsCliOverrides():void {
 		$command = new ExecuteCommand();
 		$parameterNames = array_map(
@@ -428,6 +494,44 @@ class ExecuteCommandTest extends TestCase {
 
 			list("out" => $out) = $this->readFromFiles($errorStreams["out"], $errorStreams["err"]);
 			self::assertStringContainsString("integrity error migrating dev file", $out);
+		}
+		finally {
+			chdir($cwdBackup);
+		}
+	}
+
+	public function testExecuteReportsIntegrityErrorWhenPartialMigrationFileChanges():void {
+		$project = $this->createProjectDir();
+		$sqlitePath = str_replace("\\", "/", $project . DIRECTORY_SEPARATOR . "cli-test.db");
+		$this->writeConfigIni($project, $sqlitePath);
+		$migrationFile = $this->createMultiStatementMigration(
+			$project,
+			"0001-partial-integrity.sql",
+			implode(";\n", [
+				"create table `test` (`id` int primary key)",
+				"insert into `helper` (`id`) values (1)",
+			]) . ";"
+		);
+
+		$cwdBackup = getcwd();
+		chdir($project);
+		try {
+			$cmd = new ExecuteCommand();
+			$initialStreams = $this->makeStreamFiles();
+			$cmd->setStream($initialStreams["stream"]);
+			$cmd->run(new ArgumentValueList());
+
+			file_put_contents($migrationFile, implode(";\n", [
+				"create table `test` (`id` int primary key)",
+				"insert into `helper` (`id`) values (2)",
+			]) . ";");
+
+			$errorStreams = $this->makeStreamFiles();
+			$cmd->setStream($errorStreams["stream"]);
+			$cmd->run(new ArgumentValueList());
+
+			list("out" => $out) = $this->readFromFiles($errorStreams["out"], $errorStreams["err"]);
+			self::assertStringContainsString("integrity error migrating file", $out);
 		}
 		finally {
 			chdir($cwdBackup);

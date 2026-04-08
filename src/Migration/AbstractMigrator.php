@@ -9,6 +9,7 @@ use SplFileObject;
 abstract class AbstractMigrator {
 	const string STREAM_OUT = "out";
 	const string STREAM_ERROR = "error";
+	const string COLUMN_LAST_STATEMENT = "lastStatement";
 
 	protected ?SplFileObject $streamError = null;
 	protected ?SplFileObject $streamOut = null;
@@ -100,13 +101,56 @@ abstract class AbstractMigrator {
 
 	protected function executeSqlFile(string $file):string {
 		$md5 = md5_file($file);
-		$sqlStatementSplitter = new SqlStatementSplitter();
-
-		foreach($sqlStatementSplitter->split(file_get_contents($file)) as $sql) {
+		foreach($this->splitSqlFile($file) as $sql) {
 			$this->dbClient->executeSql($sql);
 		}
 
 		return $md5;
+	}
+
+	/** @return array<string> */
+	protected function splitSqlFile(string $file):array {
+		$sqlStatementSplitter = new SqlStatementSplitter();
+		return $sqlStatementSplitter->split(file_get_contents($file));
+	}
+
+	protected function countSqlStatements(string $file):int {
+		return count($this->splitSqlFile($file));
+	}
+
+	protected function tableHasColumn(string $columnName):bool {
+		switch($this->driver) {
+		case Settings::DRIVER_SQLITE:
+			$result = $this->dbClient->executeSql(
+				"PRAGMA table_info(`{$this->tableName}`)"
+			);
+			foreach($result->fetchAll() as $row) {
+				if($row->getString("name") === $columnName) {
+					return true;
+				}
+			}
+			return false;
+
+		default:
+			$result = $this->dbClient->executeSql(
+				"show columns from `{$this->tableName}` like ?",
+				[$columnName]
+			);
+			return !empty($result->fetch());
+		}
+	}
+
+	protected function ensureColumnExists(
+		string $columnName,
+		string $definition
+	):void {
+		if($this->tableHasColumn($columnName)) {
+			return;
+		}
+
+		$this->dbClient->executeSql(
+			"alter table `{$this->tableName}` add `$columnName` $definition"
+		);
 	}
 
 	protected function nowExpression():string {

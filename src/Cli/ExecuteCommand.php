@@ -35,8 +35,8 @@ class ExecuteCommand extends Command {
 
 		$migrator->selectSchema();
 		$migrator->createMigrationTable();
-		$migrationCount = $migrator->getMigrationCount();
 		$migrationFileList = $migrator->getMigrationFileList();
+		$migrationCount = $migrator->getContiguousCompletedMigrationCount($migrationFileList);
 
 		$runFrom = $this->calculateResetNumber($arguments, $migrationFileList, $migrator, $migrationCount);
 
