@@ -3,6 +3,7 @@ namespace Gt\Database\Test\Query;
 
 use Gt\Database\Connection\DefaultSettings;
 use Gt\Database\Connection\Driver;
+use Gt\Database\Connection\ConnectionNotConfiguredException;
 use Gt\Database\Query\PhpQuery;
 use Gt\Database\Query\Query;
 use Gt\Database\Query\QueryFactory;
@@ -214,6 +215,52 @@ class QueryFactoryTest extends TestCase {
 		}
 	}
 
+	public function testCreatePhpPrefersOverrideDirectoryWhenMethodIsNotPublic():void {
+		$basePath = Helper::getTmpDir();
+		$classPath = implode(DIRECTORY_SEPARATOR, [
+			$basePath,
+			"query",
+			"User.php",
+		]);
+		$overrideDirectory = implode(DIRECTORY_SEPARATOR, [
+			$basePath,
+			"query",
+			"User",
+		]);
+		mkdir($overrideDirectory, 0775, true);
+		file_put_contents(
+			$classPath,
+			<<<PHP
+			<?php
+			namespace App\Query;
+
+			class User {
+				protected function getById():string {
+					return "select 1";
+				}
+			}
+			PHP
+		);
+		file_put_contents(
+			"$overrideDirectory/getById.sql",
+			"select :id as id"
+		);
+
+		try {
+			$sut = new QueryFactory($classPath, new Driver(new DefaultSettings()));
+			$query = $sut->create("getById");
+
+			self::assertInstanceOf(SqlQuery::class, $query);
+			self::assertSame(
+				realpath("$overrideDirectory/getById.sql"),
+				$query->getFilePath()
+			);
+		}
+		finally {
+			Helper::deleteDir($basePath);
+		}
+	}
+
 	public function testCreatePhpThrowsWhenOverrideConflictsWithPublicMethod():void {
 		$basePath = Helper::getTmpDir();
 		$classPath = implode(DIRECTORY_SEPARATOR, [
@@ -250,6 +297,106 @@ class QueryFactoryTest extends TestCase {
 
 			self::expectException(QueryOverrideConflictException::class);
 			$sut->create("getById");
+		}
+		finally {
+			Helper::deleteDir($basePath);
+		}
+	}
+
+	public function testCreateTranslatesConnectionNotConfiguredException():void {
+		$basePath = Helper::getTmpDir();
+		$queryDirectory = implode(DIRECTORY_SEPARATOR, [
+			$basePath,
+			"query",
+		]);
+		mkdir($queryDirectory, 0775, true);
+		file_put_contents("$queryDirectory/users.sql", "select 1");
+
+		$driver = $this->createMock(Driver::class);
+		$driver->method("getConnection")
+			->willThrowException(
+				new \InvalidArgumentException("Database [reporting] not configured")
+			);
+
+		try {
+			$sut = new QueryFactory($queryDirectory, $driver);
+
+			self::expectException(ConnectionNotConfiguredException::class);
+			self::expectExceptionMessage("reporting");
+			$sut->create("users");
+		}
+		finally {
+			Helper::deleteDir($basePath);
+		}
+	}
+
+	public function testCreateRethrowsUnexpectedInvalidArgumentException():void {
+		$basePath = Helper::getTmpDir();
+		$queryDirectory = implode(DIRECTORY_SEPARATOR, [
+			$basePath,
+			"query",
+		]);
+		mkdir($queryDirectory, 0775, true);
+		file_put_contents("$queryDirectory/users.sql", "select 1");
+
+		$driver = $this->createMock(Driver::class);
+		$driver->method("getConnection")
+			->willThrowException(new \InvalidArgumentException("Unexpected error"));
+
+		try {
+			$sut = new QueryFactory($queryDirectory, $driver);
+
+			self::expectException(\InvalidArgumentException::class);
+			self::expectExceptionMessage("Unexpected error");
+			$sut->create("users");
+		}
+		finally {
+			Helper::deleteDir($basePath);
+		}
+	}
+
+	public function testFindQueryFilePathIgnoresUnrelatedInvalidExtensions():void {
+		$basePath = Helper::getTmpDir();
+		$queryDirectory = implode(DIRECTORY_SEPARATOR, [
+			$basePath,
+			"query",
+		]);
+		mkdir($queryDirectory, 0775, true);
+		file_put_contents("$queryDirectory/valid.sql", "select 1");
+		file_put_contents("$queryDirectory/other.sql~", "select 2");
+
+		try {
+			$sut = new QueryFactory($queryDirectory, new Driver(new DefaultSettings()));
+			$queryFilePath = $sut->findQueryFilePath("valid");
+
+			self::assertSame(
+				realpath("$queryDirectory/valid.sql"),
+				$queryFilePath
+			);
+		}
+		finally {
+			Helper::deleteDir($basePath);
+		}
+	}
+
+	public function testFindQueryFilePathPrefersSupportedExtensionOverEditorBackup():void {
+		$basePath = Helper::getTmpDir();
+		$queryDirectory = implode(DIRECTORY_SEPARATOR, [
+			$basePath,
+			"query",
+		]);
+		mkdir($queryDirectory, 0775, true);
+		file_put_contents("$queryDirectory/report.sql", "select 1");
+		file_put_contents("$queryDirectory/report.sql~", "select 2");
+
+		try {
+			$sut = new QueryFactory($queryDirectory, new Driver(new DefaultSettings()));
+			$queryFilePath = $sut->findQueryFilePath("report");
+
+			self::assertSame(
+				realpath("$queryDirectory/report.sql"),
+				$queryFilePath
+			);
 		}
 		finally {
 			Helper::deleteDir($basePath);

@@ -14,7 +14,7 @@ use Gt\Database\StatementExecutionException;
 use Gt\Database\StatementPreparationException;
 
 class ExecuteCommand extends Command {
-	public function run(?ArgumentValueList $arguments = null):void {
+	public function run(?ArgumentValueList $arguments = null):int {
 		$repoBasePath = getcwd();
 		$defaultPath = $this->getDefaultPath($repoBasePath);
 		$config = $this->getConfig($repoBasePath, $defaultPath);
@@ -44,12 +44,14 @@ class ExecuteCommand extends Command {
 
 		if($this->isDevMerge($arguments)) {
 			$this->mergeDevMigrations($settings, $migrator, $migrationPath, $devMigrationPath, $devMigrationTable);
-			return;
+			return 0;
 		}
 
 		if($this->isDev($arguments)) {
 			$this->executeDevMigrations($settings, $devMigrationPath, $devMigrationTable);
 		}
+
+		return 0;
 	}
 
 	/** Determine whether the --force flag was provided. */
