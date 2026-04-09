@@ -646,6 +646,107 @@ class MigratorTest extends TestCase {
 		$migrator->checkIntegrity([$file]);
 	}
 
+	public function testPerformMigrationThrowsWhenPartialMigrationFileChanges():void {
+		$path = $this->getMigrationDirectory();
+		$file = $path . DIRECTORY_SEPARATOR . "0001-partial-perform-integrity.sql";
+		file_put_contents($file, implode(";\n", [
+			"create table `test` (`id` int primary key)",
+			"insert into `helper` (`id`) values (1)",
+		]) . ";");
+
+		$settings = $this->createSettings($path);
+		$migrator = new Migrator($settings, $path);
+		$migrator->createMigrationTable();
+
+		try {
+			$migrator->performMigration([$file]);
+			self::fail("The migration should fail until the helper table exists.");
+		}
+		catch(DatabaseException) {
+		}
+
+		file_put_contents($file, implode(";\n", [
+			"create table `test` (`id` int primary key)",
+			"insert into `helper` (`id`) values (2)",
+		]) . ";");
+
+		$this->expectException(MigrationIntegrityException::class);
+		$migrator->performMigration([$file]);
+	}
+
+	public function testPerformMigrationSkipsAlreadyCompletedMultiStatementFile():void {
+		$path = $this->getMigrationDirectory();
+		$file = $path . DIRECTORY_SEPARATOR . "0001-complete.sql";
+		file_put_contents($file, implode(";\n", [
+			"create table `test` (`id` int primary key)",
+			"alter table `test` add `name` varchar(32)",
+		]) . ";");
+
+		$settings = $this->createSettings($path);
+		$migrator = new Migrator($settings, $path);
+		$migrator->createMigrationTable();
+		self::assertSame(1, $migrator->performMigration([$file]));
+		self::assertSame(0, $migrator->performMigration([$file]));
+	}
+
+	public function testGetContiguousCompletedMigrationCountTreatsLegacyCompletedRowsAsComplete():void {
+		$path = $this->getMigrationDirectory();
+		$file = $path . DIRECTORY_SEPARATOR . "0001-legacy.sql";
+		file_put_contents($file, self::MIGRATION_CREATE);
+
+		$settings = $this->createSettings($path);
+		$db = new Database($settings);
+		$db->executeSql(implode("\n", [
+			"create table `_migration` (",
+			"`queryNumber` int primary key,",
+			"`queryHash` varchar(32) null,",
+			"`migratedAt` datetime not null",
+			")",
+		]));
+		$db->executeSql(implode("\n", [
+			"insert into `_migration` (`queryNumber`, `queryHash`, `migratedAt`)",
+			"values (1, ?, datetime('now'))",
+		]), [md5_file($file)]);
+
+		$migrator = new Migrator($settings, $path);
+		self::assertSame(1, $migrator->getContiguousCompletedMigrationCount([$file]));
+	}
+
+	public function testGetContiguousCompletedMigrationCountTreatsResetRowsAsComplete():void {
+		$path = $this->getMigrationDirectory();
+		$file = $path . DIRECTORY_SEPARATOR . "0001-reset.sql";
+		file_put_contents($file, self::MIGRATION_CREATE);
+
+		$settings = $this->createSettings($path);
+		$migrator = new Migrator($settings, $path);
+		$migrator->createMigrationTable();
+		$migrator->resetMigrationSequence(1);
+
+		self::assertSame(1, $migrator->getContiguousCompletedMigrationCount([$file]));
+	}
+
+	public function testPerformMigrationRunsWhenResetRowHasNullHash():void {
+		$path = $this->getMigrationDirectory();
+		$file = $path . DIRECTORY_SEPARATOR . "0001-reset-rerun.sql";
+		file_put_contents($file, self::MIGRATION_CREATE);
+
+		$settings = $this->createSettings($path);
+		$migrator = new Migrator($settings, $path);
+		$migrator->createMigrationTable();
+		$migrator->resetMigrationSequence(1);
+
+		self::assertSame(1, $migrator->performMigration([$file]));
+	}
+
+	public function testGetDefaultTableNameReturnsMigration():void {
+		$path = $this->getMigrationDirectory();
+		$settings = $this->createSettings($path);
+		$migrator = new Migrator($settings, $path);
+		$method = new \ReflectionMethod($migrator, "getDefaultTableName");
+
+		self::assertSame("_migration", $method->invoke($migrator));
+	}
+
 	/** @dataProvider dataMigrationFileList */
 	public function testMigrationThrowsExceptionWhenNoMigrationTable(array $fileList) {
 		$path = $this->getMigrationDirectory();

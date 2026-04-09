@@ -11,6 +11,26 @@ use Gt\Database\Test\Helper\Helper;
 use PHPUnit\Framework\TestCase;
 
 class DevMigratorTest extends TestCase {
+	private function createProbe(Settings $settings, string $path):DevMigrator {
+		return new class($settings, $path) extends DevMigrator {
+			public function hasMigrationBeenAppliedPublic(string $fileName):bool {
+				return $this->hasMigrationBeenApplied($fileName);
+			}
+
+			public function getStoredHashPublic(string $fileName):?string {
+				return $this->getStoredHash($fileName);
+			}
+
+			public function recordMigrationSuccessPublic(string $fileName, string $hash):void {
+				$this->recordMigrationSuccess($fileName, $hash);
+			}
+
+			public function getStoredProgressPublic(string $fileName):?array {
+				return $this->getStoredProgress($fileName);
+			}
+		};
+	}
+
 	private function createProjectDir():string {
 		$root = Helper::getTmpDir();
 		$project = implode(DIRECTORY_SEPARATOR, [$root, uniqid("dev-mig-")]);
@@ -78,6 +98,68 @@ class DevMigratorTest extends TestCase {
 
 		$this->expectException(MigrationIntegrityException::class);
 		$devMigrator->checkIntegrity($files);
+	}
+
+	public function testProbeMethodsExposeStoredProgressForAppliedFile():void {
+		$project = $this->createProjectDir();
+		$databasePath = $project . DIRECTORY_SEPARATOR . "dev.sqlite";
+		$settings = $this->createSettings($project, $databasePath);
+		$devPath = $project . DIRECTORY_SEPARATOR . "query" . DIRECTORY_SEPARATOR . "_migration" . DIRECTORY_SEPARATOR . "dev";
+		$files = $this->createMigrationFiles($devPath, "feature", 1);
+
+		$devMigrator = $this->createProbe($settings, $devPath);
+		$devMigrator->createMigrationTable();
+		$devMigrator->performMigration($files);
+
+		self::assertTrue($devMigrator->hasMigrationBeenAppliedPublic(basename($files[0])));
+		self::assertSame(md5_file($files[0]), $devMigrator->getStoredHashPublic(basename($files[0])));
+	}
+
+	public function testLegacyDevMigrationRowReturnsNullLastStatement():void {
+		$project = $this->createProjectDir();
+		$databasePath = $project . DIRECTORY_SEPARATOR . "dev.sqlite";
+		$settings = $this->createSettings($project, $databasePath);
+		$devPath = $project . DIRECTORY_SEPARATOR . "query" . DIRECTORY_SEPARATOR . "_migration" . DIRECTORY_SEPARATOR . "dev";
+		mkdir($devPath, 0775, true);
+		$file = $devPath . DIRECTORY_SEPARATOR . "001-feature.sql";
+		file_put_contents($file, "create table `test` (`id` int primary key)");
+
+		$db = new Database($settings);
+		$db->executeSql(implode("\n", [
+			"create table `_migration_dev` (",
+			"`fileName` varchar(255) primary key,",
+			"`queryHash` varchar(32) not null,",
+			"`migratedAt` datetime not null",
+			")",
+		]));
+		$db->executeSql(implode("\n", [
+			"insert into `_migration_dev` (`fileName`, `queryHash`, `migratedAt`)",
+			"values (?, ?, datetime('now'))",
+		]), [basename($file), md5_file($file)]);
+
+		$devMigrator = $this->createProbe($settings, $devPath);
+		$progress = $devMigrator->getStoredProgressPublic(basename($file));
+
+		self::assertSame(md5_file($file), $progress["hash"]);
+		self::assertNull($progress["lastStatement"]);
+		self::assertSame(0, $devMigrator->performMigration([$file]));
+	}
+
+	public function testRecordMigrationSuccessStoresCompleteDevMigration():void {
+		$project = $this->createProjectDir();
+		$databasePath = $project . DIRECTORY_SEPARATOR . "dev.sqlite";
+		$settings = $this->createSettings($project, $databasePath);
+		$devPath = $project . DIRECTORY_SEPARATOR . "query" . DIRECTORY_SEPARATOR . "_migration" . DIRECTORY_SEPARATOR . "dev";
+		mkdir($devPath, 0775, true);
+		$fileName = "001-feature.sql";
+
+		$devMigrator = $this->createProbe($settings, $devPath);
+		$devMigrator->createMigrationTable();
+		$devMigrator->recordMigrationSuccessPublic($fileName, "abc123");
+
+		$progress = $devMigrator->getStoredProgressPublic($fileName);
+		self::assertSame("abc123", $progress["hash"]);
+		self::assertNull($progress["lastStatement"]);
 	}
 
 	public function testPerformDevMigrationRecordsCompletedStatementsAndResumes():void {
@@ -155,6 +237,37 @@ class DevMigratorTest extends TestCase {
 		$devMigrator->checkIntegrity([$file]);
 	}
 
+	public function testPerformDevMigrationThrowsWhenPartialFileChanges():void {
+		$project = $this->createProjectDir();
+		$databasePath = $project . DIRECTORY_SEPARATOR . "dev.sqlite";
+		$settings = $this->createSettings($project, $databasePath);
+		$devPath = $project . DIRECTORY_SEPARATOR . "query" . DIRECTORY_SEPARATOR . "_migration" . DIRECTORY_SEPARATOR . "dev";
+		mkdir($devPath, 0775, true);
+		$file = $devPath . DIRECTORY_SEPARATOR . "001-feature.sql";
+		file_put_contents($file, implode(";\n", [
+			"create table `test` (`id` int primary key)",
+			"insert into `helper` (`id`) values (1)",
+		]) . ";");
+
+		$devMigrator = new DevMigrator($settings, $devPath);
+		$devMigrator->createMigrationTable();
+
+		try {
+			$devMigrator->performMigration([$file]);
+			self::fail("The dev migration should fail until the helper table exists.");
+		}
+		catch(\Gt\Database\DatabaseException) {
+		}
+
+		file_put_contents($file, implode(";\n", [
+			"create table `test` (`id` int primary key)",
+			"insert into `helper` (`id`) values (2)",
+		]) . ";");
+
+		$this->expectException(MigrationIntegrityException::class);
+		$devMigrator->performMigration([$file]);
+	}
+
 	public function testMergeIntoMainMigrationDirectoryPromotesAppliedDevMigrations():void {
 		$project = $this->createProjectDir();
 		$databasePath = $project . DIRECTORY_SEPARATOR . "dev.sqlite";
@@ -190,6 +303,76 @@ class DevMigratorTest extends TestCase {
 		self::assertFileDoesNotExist($devFiles[1]);
 		self::assertSame([], $devMigrator->getMigrationFileList());
 		self::assertSame(3, $migrator->getMigrationCount());
+	}
+
+	public function testMergeIntoMainMigrationDirectoryCreatesTargetPathWhenMissing():void {
+		$project = $this->createProjectDir();
+		$databasePath = $project . DIRECTORY_SEPARATOR . "dev.sqlite";
+		$settings = $this->createSettings($project, $databasePath);
+		$mainPath = $project . DIRECTORY_SEPARATOR . "query" . DIRECTORY_SEPARATOR . "_migration";
+		$devPath = $project . DIRECTORY_SEPARATOR . "query" . DIRECTORY_SEPARATOR . "_dev-only";
+		mkdir($devPath, 0775, true);
+		$devFile = $devPath . DIRECTORY_SEPARATOR . "001-feature-1.sql";
+		file_put_contents($devFile, "create table `test` (`id` int primary key)");
+
+		$migrator = new Migrator($settings, $mainPath);
+		$migrator->createMigrationTable();
+
+		$devMigrator = new DevMigrator($settings, $devPath);
+		$devMigrator->createMigrationTable();
+		$devMigrator->performMigration([$devFile]);
+
+		self::assertSame(1, $devMigrator->mergeIntoMainMigrationDirectory($migrator, $mainPath));
+		self::assertFileExists($mainPath . DIRECTORY_SEPARATOR . "0001-feature-1.sql");
+	}
+
+	public function testMergeIntoMainMigrationDirectoryThrowsWhenAppliedRecordIsMissing():void {
+		$project = $this->createProjectDir();
+		$databasePath = $project . DIRECTORY_SEPARATOR . "dev.sqlite";
+		$settings = $this->createSettings($project, $databasePath);
+		$mainPath = $project . DIRECTORY_SEPARATOR . "query" . DIRECTORY_SEPARATOR . "_migration";
+		$devPath = $mainPath . DIRECTORY_SEPARATOR . "dev";
+		mkdir($devPath, 0775, true);
+		$devFile = $devPath . DIRECTORY_SEPARATOR . "001-feature-1.sql";
+		file_put_contents($devFile, "create table `test` (`id` int primary key)");
+
+		$migrator = new Migrator($settings, $mainPath);
+		$migrator->createMigrationTable();
+
+		$devMigrator = new DevMigrator($settings, $devPath);
+		$devMigrator->createMigrationTable();
+
+		$this->expectException(MigrationIntegrityException::class);
+		$devMigrator->mergeIntoMainMigrationDirectory($migrator, $mainPath);
+	}
+
+	public function testMergeIntoMainMigrationDirectoryThrowsWhenTargetFileExists():void {
+		$project = $this->createProjectDir();
+		$databasePath = $project . DIRECTORY_SEPARATOR . "dev.sqlite";
+		$settings = $this->createSettings($project, $databasePath);
+		$mainPath = $project . DIRECTORY_SEPARATOR . "query" . DIRECTORY_SEPARATOR . "_migration";
+		$devPath = $mainPath . DIRECTORY_SEPARATOR . "dev";
+		$targetPath = $project . DIRECTORY_SEPARATOR . "query" . DIRECTORY_SEPARATOR . "_merge-target";
+
+		mkdir($mainPath, 0775, true);
+		mkdir($devPath, 0775, true);
+		file_put_contents($mainPath . DIRECTORY_SEPARATOR . "0001-existing.sql", "create table `test` (`id` int primary key)");
+		mkdir($targetPath, 0775, true);
+		file_put_contents($targetPath . DIRECTORY_SEPARATOR . "0004-feature-1.sql", "select 1");
+		$devFile = $devPath . DIRECTORY_SEPARATOR . "001-feature-1.sql";
+		file_put_contents($devFile, "alter table `test` add `feature_1` text");
+
+		$migrator = new Migrator($settings, $mainPath);
+		$migrator->createMigrationTable();
+		$migrator->performMigration([$mainPath . DIRECTORY_SEPARATOR . "0001-existing.sql"]);
+		$migrator->resetMigrationSequence(3);
+
+		$devMigrator = new DevMigrator($settings, $devPath);
+		$devMigrator->createMigrationTable();
+		$devMigrator->performMigration([$devFile]);
+
+		$this->expectException(MigrationSequenceOrderException::class);
+		$devMigrator->mergeIntoMainMigrationDirectory($migrator, $targetPath);
 	}
 
 	public function testDevMigratorThrowsOnGapsInSequence():void {

@@ -500,6 +500,33 @@ class ExecuteCommandTest extends TestCase {
 		}
 	}
 
+	public function testExecuteWithDevReportsStatementExecutionError():void {
+		$project = $this->createProjectDir();
+		$sqlitePath = str_replace("\\", "/", $project . DIRECTORY_SEPARATOR . "cli-test.db");
+		$this->writeConfigIni($project, $sqlitePath);
+		$this->createMigrations($project, 1);
+		$devFiles = $this->createDevMigrations($project, 1);
+		file_put_contents($devFiles[0], "this is not valid sql");
+
+		$cwdBackup = getcwd();
+		chdir($project);
+		try {
+			$cmd = new ExecuteCommand();
+			$streams = $this->makeStreamFiles();
+			$cmd->setStream($streams["stream"]);
+
+			$args = new ArgumentValueList();
+			$args->set("dev");
+			$cmd->run($args);
+
+			list("out" => $out) = $this->readFromFiles($streams["out"], $streams["err"]);
+			self::assertStringContainsString("error executing dev migration file", $out);
+		}
+		finally {
+			chdir($cwdBackup);
+		}
+	}
+
 	public function testExecuteReportsIntegrityErrorWhenPartialMigrationFileChanges():void {
 		$project = $this->createProjectDir();
 		$sqlitePath = str_replace("\\", "/", $project . DIRECTORY_SEPARATOR . "cli-test.db");

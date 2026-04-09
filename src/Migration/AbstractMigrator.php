@@ -30,9 +30,11 @@ abstract class AbstractMigrator {
 		$this->path = $path;
 		$this->tableName = $tableName ?? $this->getDefaultTableName();
 
+// @codeCoverageIgnoreStart
 		if($this->driver !== Settings::DRIVER_SQLITE) {
 			$settings = $settings->withoutSchema();
 		}
+// @codeCoverageIgnoreEnd
 
 		$this->dbClient = new Database($settings);
 	}
@@ -131,12 +133,14 @@ abstract class AbstractMigrator {
 			}
 			return false;
 
-		default:
-			$result = $this->dbClient->executeSql(
-				"show columns from `{$this->tableName}` like ?",
-				[$columnName]
-			);
-			return !empty($result->fetch());
+			default:
+// @codeCoverageIgnoreStart
+				$result = $this->dbClient->executeSql(
+					"show columns from `{$this->tableName}` like ?",
+					[$columnName]
+				);
+				return !empty($result->fetch());
+// @codeCoverageIgnoreEnd
 		}
 	}
 

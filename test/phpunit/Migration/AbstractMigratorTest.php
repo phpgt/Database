@@ -47,6 +47,10 @@ class AbstractMigratorTest extends TestCase {
 			public function outputPublic(string $message, string $streamName = self::STREAM_OUT):void {
 				$this->output($message, $streamName);
 			}
+
+			public function ensureColumnExistsPublic(string $columnName, string $definition):void {
+				$this->ensureColumnExists($columnName, $definition);
+			}
 		};
 	}
 
@@ -80,6 +84,42 @@ class AbstractMigratorTest extends TestCase {
 
 		self::assertSame("datetime('now')", $sqliteProbe->nowExpressionPublic());
 		self::assertSame("now()", $mysqlProbe->nowExpressionPublic());
+	}
+
+	public function testCheckFileListOrderThrowsWhenFirstMigrationIsNotOne():void {
+		$dir = $this->createWorkspace();
+		$settings = $this->createSettings($dir, Settings::DRIVER_SQLITE, $dir . "/probe.sqlite");
+		$probe = $this->createProbe($settings, $dir);
+
+		$this->expectException(\Gt\Database\Migration\MigrationSequenceOrderException::class);
+		$probe->checkFileListOrder([$dir . "/002-start.sql"]);
+	}
+
+	public function testCheckFileListOrderThrowsWhenOutOfOrder():void {
+		$dir = $this->createWorkspace();
+		$settings = $this->createSettings($dir, Settings::DRIVER_SQLITE, $dir . "/probe.sqlite");
+		$probe = $this->createProbe($settings, $dir);
+
+		$this->expectException(\Gt\Database\Migration\MigrationSequenceOrderException::class);
+		$probe->checkFileListOrder([
+			$dir . "/001-first.sql",
+			$dir . "/002-second.sql",
+			$dir . "/001-third.sql",
+		]);
+	}
+
+	public function testEnsureColumnExistsAddsMissingColumn():void {
+		$dir = $this->createWorkspace();
+		$settings = $this->createSettings($dir, Settings::DRIVER_SQLITE, $dir . "/probe.sqlite");
+		$probe = $this->createProbe($settings, $dir, "_probe");
+		$db = new \Gt\Database\Database($settings);
+		$db->executeSql("create table `_probe` (`id` int primary key)");
+
+		$probe->ensureColumnExistsPublic("lastStatement", "int null");
+
+		$result = $db->executeSql("PRAGMA table_info(`_probe`)");
+		$columnNames = array_map(fn($row) => $row->getString("name"), $result->fetchAll());
+		self::assertContains("lastStatement", $columnNames);
 	}
 
 	public function testExecuteSqlFileRunsEachStatementAndReturnsHash():void {
