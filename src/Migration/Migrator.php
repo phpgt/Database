@@ -1,30 +1,20 @@
 <?php /** @noinspection ALL */
 namespace Gt\Database\Migration;
 
-use DirectoryIterator;
 use Exception;
-use Gt\Database\Database;
 use Gt\Database\Connection\Settings;
+use Gt\Database\Database;
 use Gt\Database\DatabaseException;
-use SplFileInfo;
-use SplFileObject;
 
-class Migrator {
+/**
+ * @SuppressWarnings(PHPMD.ExcessiveClassComplexity)
+ */
+class Migrator extends AbstractMigrator {
 	const COLUMN_QUERY_NUMBER = "queryNumber";
 	const COLUMN_QUERY_HASH = "queryHash";
 	const COLUMN_MIGRATED_AT = "migratedAt";
 
-	const STREAM_OUT = "out";
-	const STREAM_ERROR = "error";
-
-	protected ?SplFileObject $streamError;
-	protected ?SplFileObject $streamOut;
-
-	protected string $driver;
 	protected string $schema;
-	protected Database $dbClient;
-	protected string $path;
-	protected string $tableName;
 	protected string $charset;
 	protected string $collate;
 
@@ -33,27 +23,14 @@ class Migrator {
 		string $path,
 		string $tableName = "_migration"
 	) {
+		parent::__construct($settings, $path, $tableName);
 		$this->schema = $settings->getSchema();
-		$this->path = $path;
-		$this->tableName = $tableName;
-		$this->driver = $settings->getDriver();
-
 		$this->charset = $settings->getCharset();
 		$this->collate = $settings->getCollation();
-
-		if($this->driver !== Settings::DRIVER_SQLITE) {
-			$settings = $settings->withoutSchema(); // @codeCoverageIgnore
-		}
-
-		$this->dbClient = new Database($settings);
 	}
 
-	public function setOutput(
-		SplFileObject $out,
-		?SplFileObject $error = null
-	):void {
-		$this->streamOut = $out;
-		$this->streamError = $error;
+	protected function getDefaultTableName():string {
+		return "_migration";
 	}
 
 	public function checkMigrationTableExists():bool {
@@ -89,8 +66,10 @@ class Migrator {
 			"create table if not exists `{$this->tableName}` (",
 			"`" . self::COLUMN_QUERY_NUMBER . "` int primary key,",
 			"`" . self::COLUMN_QUERY_HASH . "` varchar(32) null,",
+			"`" . self::COLUMN_LAST_STATEMENT . "` int null,",
 			"`" . self::COLUMN_MIGRATED_AT . "` datetime not null )",
 		]));
+		$this->ensureColumnExists(self::COLUMN_LAST_STATEMENT, "int null");
 	}
 
 	public function getMigrationCount():int {
@@ -109,6 +88,37 @@ class Migrator {
 		return $row?->getInt(self::COLUMN_QUERY_NUMBER) ?? 0;
 	}
 
+	/** @param array<string> $migrationFileList */
+	public function getContiguousCompletedMigrationCount(array $migrationFileList):int {
+		$completedCount = 0;
+
+		foreach($migrationFileList as $file) {
+			$fileNumber = $this->extractNumberFromFilename($file);
+			$progress = $this->getMigrationProgress($fileNumber);
+			if(is_null($progress)) {
+				break;
+			}
+
+			if(is_null($progress["hash"])) {
+				$completedCount = $fileNumber;
+				continue;
+			}
+
+			if(is_null($progress["lastStatement"])) {
+				$completedCount = $fileNumber;
+				continue;
+			}
+
+			if($progress["lastStatement"] < $this->countSqlStatements($file)) {
+				break;
+			}
+
+			$completedCount = $fileNumber;
+		}
+
+		return $completedCount;
+	}
+
 	/** @return array<string> */
 	public function getMigrationFileList():array {
 		if(!is_dir($this->path)) {
@@ -117,31 +127,7 @@ class Migrator {
 			);
 		}
 
-		$fileList = glob("$this->path/*.sql");
-		sort($fileList);
-		return $fileList;
-	}
-
-	/** @param array<string> $fileList */
-	public function checkFileListOrder(array $fileList):void {
-		$previousNumber = null;
-		$sequence = [];
-
-		foreach($fileList as $file) {
-			$migrationNumber = $this->extractNumberFromFilename($file);
-			$sequence []= $migrationNumber;
-
-			if(!is_null($previousNumber)) {
-				if($migrationNumber === $previousNumber) {
-					throw new MigrationSequenceOrderException("Duplicate: $migrationNumber");
-				}
-				if($migrationNumber < $previousNumber) {
-					throw new MigrationSequenceOrderException("Out of order: $migrationNumber before $previousNumber");
-				}
-			}
-
-			$previousNumber = $migrationNumber;
-		}
+		return parent::getMigrationFileList();
 	}
 
 	/** @param array<string> $migrationFileList */
@@ -150,26 +136,16 @@ class Migrator {
 		?int $migrationStartFrom = null
 	):int {
 		$fileNumber = 0;
-		
+
 		foreach($migrationFileList as $file) {
 			$fileNumber = $this->extractNumberFromFilename($file);
 
-			// If a start point is provided, skip files at or before that number
-			// and only verify files AFTER the provided migration count.
 			if(!is_null($migrationStartFrom) && $fileNumber <= $migrationStartFrom) {
 				continue;
 			}
 
 			$md5 = md5_file($file);
-
-			$result = $this->dbClient->executeSql(implode("\n", [
-				"select `" . self::COLUMN_QUERY_HASH . "`",
-				"from `{$this->tableName}`",
-				"where `" . self::COLUMN_QUERY_NUMBER . "` = ?",
-				"limit 1",
-			]), [$fileNumber]);
-
-			$hashInDb = ($result->fetch())?->getString(self::COLUMN_QUERY_HASH);
+			$hashInDb = $this->getMigrationProgress($fileNumber)["hash"] ?? null;
 
 			if($hashInDb && $hashInDb !== $md5) {
 				throw new MigrationIntegrityException($file);
@@ -179,40 +155,46 @@ class Migrator {
 		return $fileNumber;
 	}
 
-	public function extractNumberFromFilename(string $pathName):int {
-		$file = new SplFileInfo($pathName);
-		$filename = $file->getFilename();
-		preg_match("/(\d+)-?.*\.sql/", $filename, $matches);
-
-		if(!isset($matches[1])) {
-			throw new MigrationFileNameFormatException($filename);
-		}
-
-		return (int)$matches[1];
-	}
-
 	/** @param array<string> $migrationFileList */
 	public function performMigration(
 		array $migrationFileList,
 		int $existingFileNumber = 0
 	):int {
 		$numCompleted = 0;
-		$sqlStatementSplitter = new SqlStatementSplitter();
-		
+
 		foreach($migrationFileList as $file) {
 			$fileNumber = $this->extractNumberFromFilename($file);
 			if($fileNumber <= $existingFileNumber) {
 				continue;
 			}
 
-			$this->output("Migration $fileNumber: `$file`.");
+			$statementList = $this->splitSqlFile($file);
+			$totalStatements = count($statementList);
+			$progress = $this->getMigrationProgress($fileNumber);
 			$md5 = md5_file($file);
-
-			foreach($sqlStatementSplitter->split(file_get_contents($file)) as $sql) {
-				$this->dbClient->executeSql($sql);
+			if($progress && $progress["hash"] && $progress["hash"] !== $md5) {
+				throw new MigrationIntegrityException($file);
 			}
 
-			$this->recordMigrationSuccess($fileNumber, $md5);
+			$lastCompletedStatement = $this->resolveLastCompletedStatement(
+				$progress,
+				$totalStatements
+			);
+			if($lastCompletedStatement >= $totalStatements) {
+				continue;
+			}
+
+			$this->output("Migration $fileNumber: `$file`.");
+			foreach($statementList as $statementIndex => $sql) {
+				$statementNumber = $statementIndex + 1;
+				if($statementNumber <= $lastCompletedStatement) {
+					continue;
+				}
+
+				$this->dbClient->executeSql($sql);
+				$this->recordMigrationProgress($fileNumber, $md5, $statementNumber);
+			}
+
 			$numCompleted++;
 		}
 
@@ -230,7 +212,6 @@ class Migrator {
 	 * @codeCoverageIgnore
 	 */
 	public function selectSchema():void {
-// SQLITE databases represent their own schema.
 		if($this->driver === Settings::DRIVER_SQLITE) {
 			return;
 		}
@@ -256,30 +237,93 @@ class Migrator {
 	}
 
 	protected function recordMigrationSuccess(int $number, ?string $hash):void {
-		$now = "now()";
+		$this->recordMigrationProgress($number, $hash, null);
+	}
 
-		if($this->driver === Settings::DRIVER_SQLITE) {
-			$now = "datetime('now')";
+	protected function recordMigrationProgress(
+		int $number,
+		?string $hash,
+		?int $lastStatement
+	):void {
+		$now = $this->nowExpression();
+		$existingState = $this->getMigrationProgress($number);
+
+		if($existingState) {
+			$this->dbClient->executeSql(implode("\n", [
+				"update `{$this->tableName}`",
+				"set `" . self::COLUMN_QUERY_HASH . "` = ?,",
+				"`" . self::COLUMN_LAST_STATEMENT . "` = ?,",
+				"`" . self::COLUMN_MIGRATED_AT . "` = $now",
+				"where `" . self::COLUMN_QUERY_NUMBER . "` = ?",
+			]), [$hash, $lastStatement, $number]);
+			return;
 		}
 
 		$this->dbClient->executeSql(implode("\n", [
 			"insert into `{$this->tableName}` (",
 			"`" . self::COLUMN_QUERY_NUMBER . "`, ",
 			"`" . self::COLUMN_QUERY_HASH . "`, ",
+			"`" . self::COLUMN_LAST_STATEMENT . "`, ",
 			"`" . self::COLUMN_MIGRATED_AT . "` ",
 			") values (",
-			"?, ?, $now",
+			"?, ?, ?, $now",
 			")",
-		]), [$number, $hash]);
+		]), [$number, $hash, $lastStatement]);
 	}
 
-	/**
-	 * @param int $numberToForce A null-hashed migration will be marked as
-	 * successful with this number. This will allow the next number to be
-	 * executed out of sequence.
-	 */
+	public function markMigrationApplied(
+		int $number,
+		string $hash,
+		int $statementCount
+	):void {
+		$this->recordMigrationProgress($number, $hash, $statementCount);
+	}
+
 	public function resetMigrationSequence(int $numberToForce):void {
 		$this->recordMigrationSuccess($numberToForce, null);
+	}
+
+	/** @return array{hash: ?string, lastStatement: ?int}|null */
+	protected function getMigrationProgress(int $fileNumber):?array {
+		$selectList = "`" . self::COLUMN_QUERY_HASH . "`";
+		if($this->tableHasColumn(self::COLUMN_LAST_STATEMENT)) {
+			$selectList .= ", `" . self::COLUMN_LAST_STATEMENT . "`";
+		}
+		else {
+			$selectList .= ", null as `" . self::COLUMN_LAST_STATEMENT . "`";
+		}
+
+		$result = $this->dbClient->executeSql(implode("\n", [
+			"select $selectList",
+			"from `{$this->tableName}`",
+			"where `" . self::COLUMN_QUERY_NUMBER . "` = ?",
+			"limit 1",
+		]), [$fileNumber]);
+		$row = $result->fetch();
+		if(!$row) {
+			return null;
+		}
+
+		return [
+			"hash" => $row->getString(self::COLUMN_QUERY_HASH),
+			"lastStatement" => $row->getInt(self::COLUMN_LAST_STATEMENT),
+		];
+	}
+
+	/** @param array{hash: ?string, lastStatement: ?int}|null $progress */
+	protected function resolveLastCompletedStatement(
+		?array $progress,
+		int $totalStatements
+	):int {
+		if(!$progress) {
+			return 0;
+		}
+
+		if(is_null($progress["lastStatement"])) {
+			return $progress["hash"] ? $totalStatements : 0;
+		}
+
+		return $progress["lastStatement"];
 	}
 
 	/**
@@ -287,6 +331,14 @@ class Migrator {
 	 */
 	public function deleteAndRecreateSchema():void {
 		if($this->driver === Settings::DRIVER_SQLITE) {
+			unset($this->dbClient);
+
+			if($this->schema !== Settings::SCHEMA_IN_MEMORY
+			&& is_file($this->schema)) {
+				unlink($this->schema);
+			}
+
+			$this->dbClient = new Database($this->settings);
 			return;
 		}
 
@@ -311,21 +363,5 @@ class Migrator {
 
 			throw $exception;
 		}
-	}
-
-	protected function output(
-		string $message,
-		string $streamName = self::STREAM_OUT
-	):void {
-		$stream = $this->streamOut ?? null;
-		if($streamName === self::STREAM_ERROR) {
-			$stream = $this->streamError;
-		}
-
-		if(is_null($stream)) {
-			return;
-		}
-
-		$stream->fwrite($message . PHP_EOL);
 	}
 }

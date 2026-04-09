@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection SqlResolve,SqlNoDataSourceInspection */
 namespace Gt\Database\Test\Cli;
 
 use Gt\Cli\Argument\ArgumentValueList;
@@ -14,9 +14,9 @@ use PHPUnit\Framework\TestCase;
 use SplFileObject;
 
 class ExecuteCommandTest extends TestCase {
-	const MIGRATION_CREATE
+	const string MIGRATION_CREATE
 		= "create table `test` (`id` int primary key, `name` varchar(32))";
-	const MIGRATION_ALTER = "alter table `test` add `new_column` varchar(32)";
+	const string MIGRATION_ALTER = "alter table `test` add `new_column` varchar(32)";
 
 	private function createProjectDir():string {
 		$root = Helper::getTmpDir();
@@ -26,16 +26,24 @@ class ExecuteCommandTest extends TestCase {
 		return $project;
 	}
 
-	private function writeConfigIni(string $projectRoot, string $sqlitePath, string $queryPath = "query", string $migrationPath = "_migration"):void {
+	private function writeConfigIni(
+		string $projectRoot,
+		string $sqlitePath,
+		string $queryPath = "query",
+		string $migrationPath = "_migration",
+	):void {
 		$config = [];
-		$config[] = "[database]";
-		$config[] = "driver = sqlite";
-		$config[] = "schema = \"" . str_replace("\\", "/", $sqlitePath) . "\"";
-		$config[] = "query_path = $queryPath";
-		$config[] = "migration_path = $migrationPath";
-		$config[] = "username = \"\"";
-		$config[] = "password = \"\"";
-		file_put_contents($projectRoot . DIRECTORY_SEPARATOR . "config.ini", implode(PHP_EOL, $config));
+		array_push($config, "[database]");
+		array_push($config, "driver = sqlite");
+		array_push($config, "schema = \"" . str_replace("\\", "/", $sqlitePath) . "\"");
+		array_push($config, "query_path = $queryPath");
+		array_push($config, "migration_path = $migrationPath");
+		array_push($config, "username = \"\"");
+		array_push($config, "password = \"\"");
+		file_put_contents(
+			$projectRoot . DIRECTORY_SEPARATOR . "config.ini",
+			implode(PHP_EOL, $config)
+		);
 	}
 
 	private function createMigrations(string $projectRoot, int $count):array {
@@ -51,12 +59,40 @@ class ExecuteCommandTest extends TestCase {
 				$sql = self::MIGRATION_CREATE;
 			}
 			else {
-				$sql = str_replace("`new_column`", "`new_column_{$i}`", self::MIGRATION_ALTER);
+				$sql = str_replace("`new_column`", "`new_column_$i`", self::MIGRATION_ALTER);
 			}
 			file_put_contents($path, $sql);
-			$fileList[] = $path;
+			array_push($fileList, $path);
 		}
 		return $fileList;
+	}
+
+	private function createDevMigrations(string $projectRoot, int $count):array {
+		$queryDir = $projectRoot . DIRECTORY_SEPARATOR . "query";
+		$migDir = $queryDir . DIRECTORY_SEPARATOR . "_migration" . DIRECTORY_SEPARATOR . "dev";
+		mkdir($migDir, 0775, true);
+
+		$fileList = [];
+		for($i = 1; $i <= $count; $i++) {
+			$filename = str_pad((string)$i, 3, "0", STR_PAD_LEFT) . "-dev-" . uniqid() . ".sql";
+			$path = $migDir . DIRECTORY_SEPARATOR . $filename;
+			$sql = "alter table `test` add `dev_column_$i` varchar(32)";
+			file_put_contents($path, $sql);
+			array_push($fileList, $path);
+		}
+		return $fileList;
+	}
+
+	private function createMultiStatementMigration(
+		string $projectRoot,
+		string $filename,
+		string $sql
+	):string {
+		$migDir = $projectRoot . DIRECTORY_SEPARATOR . "query" . DIRECTORY_SEPARATOR . "_migration";
+		mkdir($migDir, 0775, true);
+		$path = $migDir . DIRECTORY_SEPARATOR . $filename;
+		file_put_contents($path, $sql);
+		return $path;
 	}
 
 	private function makeStreamFiles():array {
@@ -107,7 +143,7 @@ class ExecuteCommandTest extends TestCase {
 		]));
 
 		$command = new class extends ExecuteCommand {
-			public function getConfigPublic(string $repoBasePath, ?string $defaultPath):\Gt\Config\Config {
+			public function getConfigPublic(string $repoBasePath, ?string $defaultPath):Config {
 				return $this->getConfig($repoBasePath, $defaultPath);
 			}
 		};
@@ -119,6 +155,29 @@ class ExecuteCommandTest extends TestCase {
 		self::assertSame("project_migrations", $config->get("database.migration_table"));
 		self::assertSame($sqlitePath, $config->get("database.schema"));
 		self::assertSame("sqlite", $config->get("database.driver"));
+	}
+
+	public function testGetDefaultPathReturnsNullWhenVendorDefaultDoesNotExist():void {
+		$project = $this->createProjectDir();
+		$command = new ExecuteCommand();
+		$reflectionMethod = new \ReflectionMethod($command, "getDefaultPath");
+
+		self::assertNull($reflectionMethod->invoke($command, $project));
+	}
+
+	public function testGetDefaultPathFindsVendorConfigDefaultIni():void {
+		$project = $this->createProjectDir();
+		$vendorConfigDir = $project . DIRECTORY_SEPARATOR . "vendor"
+			. DIRECTORY_SEPARATOR . "phpgt"
+			. DIRECTORY_SEPARATOR . "webengine";
+		mkdir($vendorConfigDir, 0775, true);
+		$defaultConfig = $vendorConfigDir . DIRECTORY_SEPARATOR . "config.default.ini";
+		file_put_contents($defaultConfig, "[database]\ndriver = sqlite\n");
+
+		$command = new ExecuteCommand();
+		$reflectionMethod = new \ReflectionMethod($command, "getDefaultPath");
+
+		self::assertSame($defaultConfig, $reflectionMethod->invoke($command, $project));
 	}
 
 	public function testExecuteMigratesAll():void {
@@ -157,7 +216,7 @@ class ExecuteCommandTest extends TestCase {
 		$project = $this->createProjectDir();
 		$sqlitePath = str_replace("\\", "/", $project . DIRECTORY_SEPARATOR . "cli-test.db");
 		$this->writeConfigIni($project, $sqlitePath);
-		$migrations = $this->createMigrations($project, 4);
+		$this->createMigrations($project, 4);
 
 		// Prepare base state: create table so we can skip first migration safely.
 		$settings = new Settings($project . DIRECTORY_SEPARATOR . "query", Settings::DRIVER_SQLITE, $sqlitePath);
@@ -191,6 +250,7 @@ class ExecuteCommandTest extends TestCase {
 		$sqlitePath = str_replace("\\", "/", $project . DIRECTORY_SEPARATOR . "cli-test.db");
 		$this->writeConfigIni($project, $sqlitePath);
 		$migrations = $this->createMigrations($project, 5);
+		self::assertCount(5, $migrations);
 
 		// Prepare base state when skipping the initial migrations.
 		$settings = new Settings($project . DIRECTORY_SEPARATOR . "query", Settings::DRIVER_SQLITE, $sqlitePath);
@@ -222,6 +282,103 @@ class ExecuteCommandTest extends TestCase {
 		}
 	}
 
+	public function testExecuteWithForceResetsSqliteDatabaseAndRerunsFromMigrationOne():void {
+		$project = $this->createProjectDir();
+		$sqlitePath = str_replace("\\", "/", $project . DIRECTORY_SEPARATOR . "cli-test.db");
+		$this->writeConfigIni($project, $sqlitePath);
+		$this->createMigrations($project, 2);
+
+		$cwdBackup = getcwd();
+		chdir($project);
+		try {
+			$cmd = new ExecuteCommand();
+			$initialStreams = $this->makeStreamFiles();
+			$cmd->setStream($initialStreams["stream"]);
+			$cmd->run(new ArgumentValueList());
+
+			$settings = new Settings($project . DIRECTORY_SEPARATOR . "query", Settings::DRIVER_SQLITE, $sqlitePath);
+			$db = new Database($settings);
+			$db->executeSql("insert into `test` (`id`, `name`, `new_column_2`) values (1, 'before-force', 'value')");
+			$rowCountBeforeForce = $db->executeSql("select count(*) as c from `test`")->fetch()?->getInt("c");
+			self::assertSame(1, $rowCountBeforeForce);
+
+			unset($db);
+
+			$forceStreams = $this->makeStreamFiles();
+			$cmd->setStream($forceStreams["stream"]);
+			$args = new ArgumentValueList();
+			$args->set("force");
+			$cmd->run($args);
+
+			list("out" => $out) = $this->readFromFiles($forceStreams["out"], $forceStreams["err"]);
+			self::assertStringContainsString("Migration 1:", $out);
+			self::assertStringContainsString("2 migrations were completed successfully.", $out);
+
+			$dbAfterForce = new Database($settings);
+			$rowCountAfterForce = $dbAfterForce->executeSql("select count(*) as c from `test`")->fetch()?->getInt("c");
+			self::assertSame(0, $rowCountAfterForce);
+			$migrationCount = $dbAfterForce->executeSql("select count(*) as c from `_migration`")->fetch()?->getInt("c");
+			self::assertSame(2, $migrationCount);
+		}
+		finally {
+			chdir($cwdBackup);
+		}
+	}
+
+	public function testExecuteResumesPartiallyAppliedMigrationFromNextStatement():void {
+		$project = $this->createProjectDir();
+		$sqlitePath = str_replace("\\", "/", $project . DIRECTORY_SEPARATOR . "cli-test.db");
+		$this->writeConfigIni($project, $sqlitePath);
+		$this->createMultiStatementMigration(
+			$project,
+			"0001-partial.sql",
+			implode(";\n", [
+				"create table `test` (`id` int primary key)",
+				"insert into `helper` (`id`) values (1)",
+				"alter table `test` add `name` varchar(32)",
+			]) . ";"
+		);
+
+		$cwdBackup = getcwd();
+		chdir($project);
+		try {
+			$cmd = new ExecuteCommand();
+			$firstStreams = $this->makeStreamFiles();
+			$cmd->setStream($firstStreams["stream"]);
+			$cmd->run(new ArgumentValueList());
+
+			$settings = new Settings($project . DIRECTORY_SEPARATOR . "query", Settings::DRIVER_SQLITE, $sqlitePath);
+			$db = new Database($settings);
+			$progressRow = $db->executeSql(implode("\n", [
+				"select `lastStatement`",
+				"from `_migration`",
+				"where `queryNumber` = 1",
+			]))->fetch();
+			self::assertSame(1, $progressRow?->getInt("lastStatement"));
+
+			$db->executeSql("create table `helper` (`id` int primary key)");
+
+			$resumeStreams = $this->makeStreamFiles();
+			$cmd->setStream($resumeStreams["stream"]);
+			$cmd->run(new ArgumentValueList());
+
+			list("out" => $out) = $this->readFromFiles($resumeStreams["out"], $resumeStreams["err"]);
+			self::assertStringContainsString("1 migrations were completed successfully.", $out);
+
+			$finalProgressRow = $db->executeSql(implode("\n", [
+				"select `lastStatement`",
+				"from `_migration`",
+				"where `queryNumber` = 1",
+			]))->fetch();
+			self::assertSame(3, $finalProgressRow?->getInt("lastStatement"));
+			$result = $db->executeSql("PRAGMA table_info(test);");
+			self::assertCount(2, $result->fetchAll());
+		}
+		finally {
+			chdir($cwdBackup);
+		}
+	}
+
 	public function testOptionalParameterListContainsCliOverrides():void {
 		$command = new ExecuteCommand();
 		$parameterNames = array_map(
@@ -236,8 +393,235 @@ class ExecuteCommandTest extends TestCase {
 		self::assertContains("port", $parameterNames);
 		self::assertContains("username", $parameterNames);
 		self::assertContains("password", $parameterNames);
+		self::assertContains("dev", $parameterNames);
+		self::assertContains("dev-merge", $parameterNames);
 		self::assertContains("force", $parameterNames);
 		self::assertContains("reset", $parameterNames);
+	}
+
+	public function testExecuteWithDevRunsCanonicalAndDevMigrations():void {
+		$project = $this->createProjectDir();
+		$sqlitePath = str_replace("\\", "/", $project . DIRECTORY_SEPARATOR . "cli-test.db");
+		$this->writeConfigIni($project, $sqlitePath);
+		$this->createMigrations($project, 1);
+		$this->createDevMigrations($project, 2);
+
+		$cwdBackup = getcwd();
+		chdir($project);
+		try {
+			$cmd = new ExecuteCommand();
+			$streams = $this->makeStreamFiles();
+			$cmd->setStream($streams["stream"]);
+
+			$args = new ArgumentValueList();
+			$args->set("dev");
+			$cmd->run($args);
+
+			list("out" => $out) = $this->readFromFiles($streams["out"], $streams["err"]);
+			self::assertStringContainsString("1 migrations were completed successfully.", $out);
+			self::assertStringContainsString("2 dev migrations were completed successfully.", $out);
+
+			$settings = new Settings($project . DIRECTORY_SEPARATOR . "query", Settings::DRIVER_SQLITE, $sqlitePath);
+			$db = new Database($settings);
+			$result = $db->executeSql("PRAGMA table_info(test);");
+			self::assertCount(4, $result->fetchAll());
+		}
+		finally {
+			chdir($cwdBackup);
+		}
+	}
+
+	public function testExecuteWithDevMergePromotesDevMigrations():void {
+		$project = $this->createProjectDir();
+		$sqlitePath = str_replace("\\", "/", $project . DIRECTORY_SEPARATOR . "cli-test.db");
+		$this->writeConfigIni($project, $sqlitePath);
+		$this->createMigrations($project, 1);
+		$devFiles = $this->createDevMigrations($project, 2);
+
+		$cwdBackup = getcwd();
+		chdir($project);
+		try {
+			$cmd = new ExecuteCommand();
+			$streams = $this->makeStreamFiles();
+			$cmd->setStream($streams["stream"]);
+
+			$args = new ArgumentValueList();
+			$args->set("dev");
+			$cmd->run($args);
+
+			$mergeStreams = $this->makeStreamFiles();
+			$cmd->setStream($mergeStreams["stream"]);
+			$mergeArgs = new ArgumentValueList();
+			$mergeArgs->set("dev-merge");
+			$cmd->run($mergeArgs);
+
+			list("out" => $out) = $this->readFromFiles($mergeStreams["out"], $mergeStreams["err"]);
+			self::assertStringContainsString("Merged dev migration", $out);
+			self::assertStringContainsString("2 dev migrations were merged successfully.", $out);
+			self::assertFileDoesNotExist($devFiles[0]);
+			self::assertFileDoesNotExist($devFiles[1]);
+			$mergedName = preg_replace("/^\d+/", "0002", basename($devFiles[0]));
+			self::assertFileExists($project . DIRECTORY_SEPARATOR . "query" . DIRECTORY_SEPARATOR . "_migration" . DIRECTORY_SEPARATOR . $mergedName);
+		}
+		finally {
+			chdir($cwdBackup);
+		}
+	}
+
+	public function testExecuteWithDevReportsIntegrityErrorWhenAppliedDevFileChanges():void {
+		$project = $this->createProjectDir();
+		$sqlitePath = str_replace("\\", "/", $project . DIRECTORY_SEPARATOR . "cli-test.db");
+		$this->writeConfigIni($project, $sqlitePath);
+		$this->createMigrations($project, 1);
+		$devFiles = $this->createDevMigrations($project, 1);
+
+		$cwdBackup = getcwd();
+		chdir($project);
+		try {
+			$cmd = new ExecuteCommand();
+			$streams = $this->makeStreamFiles();
+			$cmd->setStream($streams["stream"]);
+
+			$args = new ArgumentValueList();
+			$args->set("dev");
+			$cmd->run($args);
+
+			file_put_contents($devFiles[0], "alter table `test` add `changed_dev_column` varchar(32)");
+
+			$errorStreams = $this->makeStreamFiles();
+			$cmd->setStream($errorStreams["stream"]);
+			$cmd->run($args);
+
+			list("out" => $out) = $this->readFromFiles($errorStreams["out"], $errorStreams["err"]);
+			self::assertStringContainsString("integrity error migrating dev file", $out);
+		}
+		finally {
+			chdir($cwdBackup);
+		}
+	}
+
+	public function testExecuteWithDevReportsStatementExecutionError():void {
+		$project = $this->createProjectDir();
+		$sqlitePath = str_replace("\\", "/", $project . DIRECTORY_SEPARATOR . "cli-test.db");
+		$this->writeConfigIni($project, $sqlitePath);
+		$this->createMigrations($project, 1);
+		$devFiles = $this->createDevMigrations($project, 1);
+		file_put_contents($devFiles[0], "this is not valid sql");
+
+		$cwdBackup = getcwd();
+		chdir($project);
+		try {
+			$cmd = new ExecuteCommand();
+			$streams = $this->makeStreamFiles();
+			$cmd->setStream($streams["stream"]);
+
+			$args = new ArgumentValueList();
+			$args->set("dev");
+			$cmd->run($args);
+
+			list("out" => $out) = $this->readFromFiles($streams["out"], $streams["err"]);
+			self::assertStringContainsString("error executing dev migration file", $out);
+		}
+		finally {
+			chdir($cwdBackup);
+		}
+	}
+
+	public function testExecuteReportsIntegrityErrorWhenPartialMigrationFileChanges():void {
+		$project = $this->createProjectDir();
+		$sqlitePath = str_replace("\\", "/", $project . DIRECTORY_SEPARATOR . "cli-test.db");
+		$this->writeConfigIni($project, $sqlitePath);
+		$migrationFile = $this->createMultiStatementMigration(
+			$project,
+			"0001-partial-integrity.sql",
+			implode(";\n", [
+				"create table `test` (`id` int primary key)",
+				"insert into `helper` (`id`) values (1)",
+			]) . ";"
+		);
+
+		$cwdBackup = getcwd();
+		chdir($project);
+		try {
+			$cmd = new ExecuteCommand();
+			$initialStreams = $this->makeStreamFiles();
+			$cmd->setStream($initialStreams["stream"]);
+			$cmd->run(new ArgumentValueList());
+
+			file_put_contents($migrationFile, implode(";\n", [
+				"create table `test` (`id` int primary key)",
+				"insert into `helper` (`id`) values (2)",
+			]) . ";");
+
+			$errorStreams = $this->makeStreamFiles();
+			$cmd->setStream($errorStreams["stream"]);
+			$cmd->run(new ArgumentValueList());
+
+			list("out" => $out) = $this->readFromFiles($errorStreams["out"], $errorStreams["err"]);
+			self::assertStringContainsString("integrity error migrating file", $out);
+		}
+		finally {
+			chdir($cwdBackup);
+		}
+	}
+
+	public function testExecuteWithDevMergeReportsIntegrityErrorWhenAppliedDevFileChanges():void {
+		$project = $this->createProjectDir();
+		$sqlitePath = str_replace("\\", "/", $project . DIRECTORY_SEPARATOR . "cli-test.db");
+		$this->writeConfigIni($project, $sqlitePath);
+		$this->createMigrations($project, 1);
+		$devFiles = $this->createDevMigrations($project, 1);
+
+		$cwdBackup = getcwd();
+		chdir($project);
+		try {
+			$cmd = new ExecuteCommand();
+			$devStreams = $this->makeStreamFiles();
+			$cmd->setStream($devStreams["stream"]);
+
+			$devArgs = new ArgumentValueList();
+			$devArgs->set("dev");
+			$cmd->run($devArgs);
+
+			file_put_contents($devFiles[0], "alter table `test` add `changed_dev_column` varchar(32)");
+
+			$mergeStreams = $this->makeStreamFiles();
+			$cmd->setStream($mergeStreams["stream"]);
+			$mergeArgs = new ArgumentValueList();
+			$mergeArgs->set("dev-merge");
+			$cmd->run($mergeArgs);
+
+			list("out" => $out) = $this->readFromFiles($mergeStreams["out"], $mergeStreams["err"]);
+			self::assertStringContainsString("integrity error merging dev migration file", $out);
+		}
+		finally {
+			chdir($cwdBackup);
+		}
+	}
+
+	public function testExecuteWithDevMergeReportsNoDevMigrationsToMerge():void {
+		$project = $this->createProjectDir();
+		$sqlitePath = str_replace("\\", "/", $project . DIRECTORY_SEPARATOR . "cli-test.db");
+		$this->writeConfigIni($project, $sqlitePath);
+		$this->createMigrations($project, 1);
+
+		$cwdBackup = getcwd();
+		chdir($project);
+		try {
+			$cmd = new ExecuteCommand();
+			$streams = $this->makeStreamFiles();
+			$cmd->setStream($streams["stream"]);
+
+			$args = new ArgumentValueList();
+			$args->set("dev-merge");
+			$cmd->run($args);
+
+			list("out" => $out) = $this->readFromFiles($streams["out"], $streams["err"]);
+			self::assertStringContainsString("No dev migrations to merge.", $out);
+		}
+		finally {
+			chdir($cwdBackup);
+		}
 	}
 
 	public function testCliArgumentsOverrideConfigValuesWhenBuildingSettings():void {
@@ -295,13 +679,32 @@ class ExecuteCommandTest extends TestCase {
 		self::assertSame("migration_log", $migrationTable);
 	}
 
+	public function testBaseDirectoryOverrideIsUsedForDevMigrationLocation():void {
+		$repoBasePath = "/tmp/project-root";
+		$config = new Config(
+			new ConfigSection("database", [
+				"query_path" => "query",
+				"dev_migration_path" => "_migration/dev",
+				"dev_migration_table" => "migration_dev_log",
+			])
+		);
+		$args = new ArgumentValueList();
+		$args->set("base-directory", "alt-query");
+
+		$command = $this->createCommandProbe();
+		[$migrationPath, $migrationTable] = $command->getDevMigrationLocationForTest($config, $repoBasePath, $args);
+
+		self::assertSame("/tmp/project-root/alt-query/_migration/dev", $migrationPath);
+		self::assertSame("migration_dev_log", $migrationTable);
+	}
+
 	private function createCommandProbe():ExecuteCommand {
 		return new class extends ExecuteCommand {
 			public function buildSettingsForTest(
 				Config $config,
 				string $repoBasePath,
 				?ArgumentValueList $arguments = null
-			): Settings {
+			):Settings {
 				return $this->buildSettingsFromConfig($config, $repoBasePath, $arguments);
 			}
 
@@ -310,10 +713,18 @@ class ExecuteCommandTest extends TestCase {
 				Config $config,
 				string $repoBasePath,
 				?ArgumentValueList $arguments = null
-			): array {
+			):array {
 				return $this->getMigrationLocation($config, $repoBasePath, $arguments);
+			}
+
+			/** @return list<string> */
+			public function getDevMigrationLocationForTest(
+				Config $config,
+				string $repoBasePath,
+				?ArgumentValueList $arguments = null
+			):array {
+				return $this->getDevMigrationLocation($config, $repoBasePath, $arguments);
 			}
 		};
 	}
-
 }

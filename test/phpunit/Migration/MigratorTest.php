@@ -114,12 +114,9 @@ class MigratorTest extends TestCase {
 		$settings = $this->createSettings($path);
 		$migrator = new Migrator($settings, $path);
 		$actualFileList = $migrator->getMigrationFileList();
-		$exception = null;
-		try {
-			$migrator->checkFileListOrder($actualFileList);
-		}
-		catch (Exception $exception) {}
-		self::assertNull($exception, "No exception should be thrown for missing sequence numbers as long as order is increasing and non-duplicated");
+
+		$this->expectException(MigrationSequenceOrderException::class);
+		$migrator->checkFileListOrder($actualFileList);
 	}
 
 	/** @dataProvider dataMigrationFileListDuplicate */
@@ -155,6 +152,28 @@ class MigratorTest extends TestCase {
 
 		$this->expectException(MigrationSequenceOrderException::class);
 		$migrator->checkFileListOrder($outOfOrder);
+	}
+
+	public function testCheckFileListOrderIgnoresNonNumericFilesAndThrowsOnResultingGap():void {
+		$path = $this->getMigrationDirectory();
+		$files = [
+			"001-first.sql",
+			"a002-second.sql",
+			"003-third.sql",
+		];
+		$this->createFiles($files, $path);
+
+		$settings = $this->createSettings($path);
+		$migrator = new Migrator($settings, $path);
+		$actualFileList = $migrator->getMigrationFileList();
+
+		self::assertSame([
+			$path . DIRECTORY_SEPARATOR . "001-first.sql",
+			$path . DIRECTORY_SEPARATOR . "003-third.sql",
+		], $actualFileList);
+
+		$this->expectException(MigrationSequenceOrderException::class);
+		$migrator->checkFileListOrder($actualFileList);
 	}
 
 	/** @dataProvider dataMigrationFileList */
@@ -401,7 +420,6 @@ class MigratorTest extends TestCase {
 
 	/**
 	 * @dataProvider dataMigrationFileList
-	 * @runInSeparateProcess
 	 */
 	public function testPerformMigrationGood(array $fileList):void {
 		$path = $this->getMigrationDirectory();
@@ -532,6 +550,201 @@ class MigratorTest extends TestCase {
 		catch(Exception $exception) {}
 
 		self::assertNull($exception);
+	}
+
+	public function testPerformMigrationIgnoresNonNumericPrefixedSqlFiles():void {
+		$path = $this->getMigrationDirectory();
+		file_put_contents($path . DIRECTORY_SEPARATOR . "0001-create-test.sql", self::MIGRATION_CREATE);
+		file_put_contents(
+			$path . DIRECTORY_SEPARATOR . "a0002-ignored.sql",
+			"alter table `test` add `ignored_column` varchar(32)"
+		);
+
+		$settings = $this->createSettings($path);
+		$migrator = new Migrator($settings, $path);
+		$migrator->createMigrationTable();
+
+		$actualFileList = $migrator->getMigrationFileList();
+		self::assertSame([
+			$path . DIRECTORY_SEPARATOR . "0001-create-test.sql",
+		], $actualFileList);
+
+		$migrator->performMigration($actualFileList);
+
+		$db = new Database($settings);
+		$result = $db->executeSql("PRAGMA table_info(test);");
+		self::assertCount(2, $result->fetchAll());
+	}
+
+	public function testPerformMigrationRecordsCompletedStatementsAndResumesPartialMigration():void {
+		$path = $this->getMigrationDirectory();
+		$file = $path . DIRECTORY_SEPARATOR . "0001-create-and-alter.sql";
+		file_put_contents($file, implode(";\n", [
+			"create table `test` (`id` int primary key)",
+			"insert into `helper` (`id`) values (1)",
+			"alter table `test` add `name` varchar(32)",
+		]) . ";");
+
+		$settings = $this->createSettings($path);
+		$migrator = new Migrator($settings, $path);
+		$migrator->createMigrationTable();
+
+		try {
+			$migrator->performMigration([$file]);
+			self::fail("The migration should fail until the helper table exists.");
+		}
+		catch(DatabaseException) {
+		}
+
+		$db = new Database($settings);
+		$progressRow = $db->executeSql(implode("\n", [
+			"select `lastStatement`",
+			"from `_migration`",
+			"where `queryNumber` = 1",
+		]))->fetch();
+		self::assertSame(1, $progressRow?->getInt("lastStatement"));
+
+		$db->executeSql("create table `helper` (`id` int primary key)");
+		self::assertSame(0, $migrator->getContiguousCompletedMigrationCount([$file]));
+		self::assertSame(1, $migrator->performMigration([$file]));
+
+		$finalProgressRow = $db->executeSql(implode("\n", [
+			"select `lastStatement`",
+			"from `_migration`",
+			"where `queryNumber` = 1",
+		]))->fetch();
+		self::assertSame(3, $finalProgressRow?->getInt("lastStatement"));
+		$result = $db->executeSql("PRAGMA table_info(test);");
+		self::assertCount(2, $result->fetchAll());
+	}
+
+	public function testCheckIntegrityThrowsWhenPartialMigrationFileChanges():void {
+		$path = $this->getMigrationDirectory();
+		$file = $path . DIRECTORY_SEPARATOR . "0001-partial-integrity.sql";
+		file_put_contents($file, implode(";\n", [
+			"create table `test` (`id` int primary key)",
+			"insert into `helper` (`id`) values (1)",
+		]) . ";");
+
+		$settings = $this->createSettings($path);
+		$migrator = new Migrator($settings, $path);
+		$migrator->createMigrationTable();
+
+		try {
+			$migrator->performMigration([$file]);
+			self::fail("The migration should fail until the helper table exists.");
+		}
+		catch(DatabaseException) {
+		}
+
+		file_put_contents($file, implode(";\n", [
+			"create table `test` (`id` int primary key)",
+			"insert into `helper` (`id`) values (2)",
+		]) . ";");
+
+		$this->expectException(MigrationIntegrityException::class);
+		$migrator->checkIntegrity([$file]);
+	}
+
+	public function testPerformMigrationThrowsWhenPartialMigrationFileChanges():void {
+		$path = $this->getMigrationDirectory();
+		$file = $path . DIRECTORY_SEPARATOR . "0001-partial-perform-integrity.sql";
+		file_put_contents($file, implode(";\n", [
+			"create table `test` (`id` int primary key)",
+			"insert into `helper` (`id`) values (1)",
+		]) . ";");
+
+		$settings = $this->createSettings($path);
+		$migrator = new Migrator($settings, $path);
+		$migrator->createMigrationTable();
+
+		try {
+			$migrator->performMigration([$file]);
+			self::fail("The migration should fail until the helper table exists.");
+		}
+		catch(DatabaseException) {
+		}
+
+		file_put_contents($file, implode(";\n", [
+			"create table `test` (`id` int primary key)",
+			"insert into `helper` (`id`) values (2)",
+		]) . ";");
+
+		$this->expectException(MigrationIntegrityException::class);
+		$migrator->performMigration([$file]);
+	}
+
+	public function testPerformMigrationSkipsAlreadyCompletedMultiStatementFile():void {
+		$path = $this->getMigrationDirectory();
+		$file = $path . DIRECTORY_SEPARATOR . "0001-complete.sql";
+		file_put_contents($file, implode(";\n", [
+			"create table `test` (`id` int primary key)",
+			"alter table `test` add `name` varchar(32)",
+		]) . ";");
+
+		$settings = $this->createSettings($path);
+		$migrator = new Migrator($settings, $path);
+		$migrator->createMigrationTable();
+		self::assertSame(1, $migrator->performMigration([$file]));
+		self::assertSame(0, $migrator->performMigration([$file]));
+	}
+
+	public function testGetContiguousCompletedMigrationCountTreatsLegacyCompletedRowsAsComplete():void {
+		$path = $this->getMigrationDirectory();
+		$file = $path . DIRECTORY_SEPARATOR . "0001-legacy.sql";
+		file_put_contents($file, self::MIGRATION_CREATE);
+
+		$settings = $this->createSettings($path);
+		$db = new Database($settings);
+		$db->executeSql(implode("\n", [
+			"create table `_migration` (",
+			"`queryNumber` int primary key,",
+			"`queryHash` varchar(32) null,",
+			"`migratedAt` datetime not null",
+			")",
+		]));
+		$db->executeSql(implode("\n", [
+			"insert into `_migration` (`queryNumber`, `queryHash`, `migratedAt`)",
+			"values (1, ?, datetime('now'))",
+		]), [md5_file($file)]);
+
+		$migrator = new Migrator($settings, $path);
+		self::assertSame(1, $migrator->getContiguousCompletedMigrationCount([$file]));
+	}
+
+	public function testGetContiguousCompletedMigrationCountTreatsResetRowsAsComplete():void {
+		$path = $this->getMigrationDirectory();
+		$file = $path . DIRECTORY_SEPARATOR . "0001-reset.sql";
+		file_put_contents($file, self::MIGRATION_CREATE);
+
+		$settings = $this->createSettings($path);
+		$migrator = new Migrator($settings, $path);
+		$migrator->createMigrationTable();
+		$migrator->resetMigrationSequence(1);
+
+		self::assertSame(1, $migrator->getContiguousCompletedMigrationCount([$file]));
+	}
+
+	public function testPerformMigrationRunsWhenResetRowHasNullHash():void {
+		$path = $this->getMigrationDirectory();
+		$file = $path . DIRECTORY_SEPARATOR . "0001-reset-rerun.sql";
+		file_put_contents($file, self::MIGRATION_CREATE);
+
+		$settings = $this->createSettings($path);
+		$migrator = new Migrator($settings, $path);
+		$migrator->createMigrationTable();
+		$migrator->resetMigrationSequence(1);
+
+		self::assertSame(1, $migrator->performMigration([$file]));
+	}
+
+	public function testGetDefaultTableNameReturnsMigration():void {
+		$path = $this->getMigrationDirectory();
+		$settings = $this->createSettings($path);
+		$migrator = new Migrator($settings, $path);
+		$method = new \ReflectionMethod($migrator, "getDefaultTableName");
+
+		self::assertSame("_migration", $method->invoke($migrator));
 	}
 
 	/** @dataProvider dataMigrationFileList */
@@ -822,7 +1035,7 @@ class MigratorTest extends TestCase {
 	}
 
 	/**
-	 * New tests for migrating from a specific file number and handling gaps
+	 * New tests for migrating from a specific file number.
 	 */
 	/** @dataProvider dataMigrationFileList */
 	public function testPerformMigrationFromSpecificNumber(array $fileList) {
@@ -866,9 +1079,9 @@ class MigratorTest extends TestCase {
 	}
 
 	/** @dataProvider dataMigrationFileListMissing */
-	public function testPerformMigrationFromSpecificNumberWithGaps(array $fileList) {
+	public function testCheckFileListOrderThrowsOnGapsWhenMigratingFromSpecificNumber(array $fileList) {
 		$path = $this->getMigrationDirectory();
-		$this->createMigrationFiles($fileList, $path);
+		$this->createFiles($fileList, $path);
 		$settings = $this->createSettings($path);
 		$migrator = new Migrator($settings, $path);
 
@@ -876,42 +1089,8 @@ class MigratorTest extends TestCase {
 			return implode(DIRECTORY_SEPARATOR, [ $path, $file ]);
 		}, $fileList);
 
-		// Build the list of actual migration numbers present (with gaps allowed)
-		$numbers = array_map(function($file) use ($migrator) {
-			return $migrator->extractNumberFromFilename($file);
-		}, $absoluteFileList);
-		sort($numbers);
-
-		// Pick a start number from the set (not the last one)
-		$startNumber = $numbers[(int)floor(count($numbers) / 2)];
-		$from = $startNumber - 1;
-
-		$migrator->createMigrationTable();
-		if($from >= 1) {
-			$db = new Database($settings);
-			$db->executeSql(self::MIGRATION_CREATE);
-		}
-
-		$streamOut = new SplFileObject("php://memory", "w");
-		$migrator->setOutput($streamOut);
-
-		$executed = $migrator->performMigration($absoluteFileList, $from);
-
-		$expected = 0;
-		foreach($numbers as $n) {
-			if($n >= $startNumber) {
-				$expected++;
-			}
-		}
-
-		$streamOut->rewind();
-		$output = $streamOut->fread(4096);
-		self::assertMatchesRegularExpression("/Migration\\s+{$startNumber}:/", $output);
-		for($n = 1; $n < $startNumber; $n++) {
-			self::assertStringNotContainsString("Migration $n:", $output);
-		}
-		self::assertStringContainsString("$expected migrations were completed successfully.", $output);
-		self::assertSame($expected, $executed);
+		$this->expectException(MigrationSequenceOrderException::class);
+		$migrator->checkFileListOrder($absoluteFileList);
 	}
 
 	protected function createFiles(array $files, string $path):void {
