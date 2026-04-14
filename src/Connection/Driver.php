@@ -1,7 +1,7 @@
 <?php
-namespace Gt\Database\Connection;
+namespace GT\Database\Connection;
 
-use Gt\Database\DatabaseException;
+use GT\Database\DatabaseException;
 use PDO;
 use PDOException;
 

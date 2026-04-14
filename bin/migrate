@@ -7,7 +7,7 @@
 
 use Gt\Cli\Application;
 use Gt\Cli\Argument\CommandArgumentList;
-use Gt\Database\Cli\ExecuteCommand;
+use GT\Database\Cli\ExecuteCommand;
 
 // The script must be run from the context of a project's root directory.
 foreach([ __DIR__ . "/../../..", __DIR__ . "/../vendor" ] as $vendor) {

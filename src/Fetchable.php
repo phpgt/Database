@@ -1,10 +1,10 @@
 <?php
-namespace Gt\Database;
+namespace GT\Database;
 
 use DateTimeImmutable;
 use DateTimeInterface;
-use Gt\Database\Result\ResultSet;
-use Gt\Database\Result\Row;
+use GT\Database\Result\ResultSet;
+use GT\Database\Result\Row;
 
 trait Fetchable {
 	public function fetch(string $queryName, mixed...$bindings):?Row {

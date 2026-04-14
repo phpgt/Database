@@ -1,9 +1,9 @@
 <?php
-namespace Gt\Database\Test\Result;
+namespace GT\Database\Test\Result;
 
-use Gt\Database\Result\Row;
+use GT\Database\Result\Row;
 use PDOStatement;
-use Gt\Database\Result\ResultSet;
+use GT\Database\Result\ResultSet;
 use PHPUnit\Framework\TestCase;
 
 class ResultSetTest extends TestCase {

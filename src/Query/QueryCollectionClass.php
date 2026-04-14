@@ -1,5 +1,5 @@
 <?php
-namespace Gt\Database\Query;
+namespace GT\Database\Query;
 
 class QueryCollectionClass extends QueryCollection {
 }

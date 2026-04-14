@@ -1,13 +1,13 @@
 <?php
-namespace Gt\Database;
+namespace GT\Database;
 
-use Gt\Database\Connection\Connection;
-use Gt\Database\Connection\DefaultSettings;
-use Gt\Database\Connection\Driver;
-use Gt\Database\Connection\SettingsInterface;
-use Gt\Database\Query\QueryCollection;
-use Gt\Database\Query\QueryCollectionFactory;
-use Gt\Database\Result\ResultSet;
+use GT\Database\Connection\Connection;
+use GT\Database\Connection\DefaultSettings;
+use GT\Database\Connection\Driver;
+use GT\Database\Connection\SettingsInterface;
+use GT\Database\Query\QueryCollection;
+use GT\Database\Query\QueryCollectionFactory;
+use GT\Database\Result\ResultSet;
 use PDOException;
 
 /**
