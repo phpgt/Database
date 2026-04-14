@@ -1,17 +1,17 @@
 <?php
-namespace Gt\Database\Test\Migration;
+namespace GT\Database\Test\Migration;
 
 use DateTime;
 use Exception;
-use Gt\Database\Database;
-use Gt\Database\Connection\Settings;
-use Gt\Database\DatabaseException;
-use Gt\Database\Migration\MigrationDirectoryNotFoundException;
-use Gt\Database\Migration\MigrationFileNameFormatException;
-use Gt\Database\Migration\MigrationIntegrityException;
-use Gt\Database\Migration\MigrationSequenceOrderException;
-use Gt\Database\Migration\Migrator;
-use Gt\Database\Test\Helper\Helper;
+use GT\Database\Database;
+use GT\Database\Connection\Settings;
+use GT\Database\DatabaseException;
+use GT\Database\Migration\MigrationDirectoryNotFoundException;
+use GT\Database\Migration\MigrationFileNameFormatException;
+use GT\Database\Migration\MigrationIntegrityException;
+use GT\Database\Migration\MigrationSequenceOrderException;
+use GT\Database\Migration\Migrator;
+use GT\Database\Test\Helper\Helper;
 use PHPUnit\Framework\TestCase;
 use SplFileObject;
 use stdClass;

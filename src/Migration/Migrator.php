@@ -1,11 +1,11 @@
 <?php /** @noinspection ALL */
-namespace Gt\Database\Migration;
+namespace GT\Database\Migration;
 
 use DirectoryIterator;
 use Exception;
-use Gt\Database\Database;
-use Gt\Database\Connection\Settings;
-use Gt\Database\DatabaseException;
+use GT\Database\Database;
+use GT\Database\Connection\Settings;
+use GT\Database\DatabaseException;
 use SplFileInfo;
 use SplFileObject;
 

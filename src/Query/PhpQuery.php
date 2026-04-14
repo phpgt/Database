@@ -1,7 +1,7 @@
 <?php
-namespace Gt\Database\Query;
+namespace GT\Database\Query;
 
-use Gt\Database\Connection\Driver;
+use GT\Database\Connection\Driver;
 use Stringable;
 
 class PhpQuery extends Query {

@@ -1,5 +1,5 @@
 <?php
-namespace Gt\Database;
+namespace GT\Database;
 
 use RuntimeException;
 

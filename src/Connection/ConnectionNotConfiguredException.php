@@ -1,6 +1,6 @@
 <?php
-namespace Gt\Database\Connection;
+namespace GT\Database\Connection;
 
-use Gt\Database\DatabaseException;
+use GT\Database\DatabaseException;
 
 class ConnectionNotConfiguredException extends DatabaseException {}

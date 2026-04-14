@@ -1,15 +1,15 @@
 <?php
-namespace Gt\Database\Cli;
+namespace GT\Database\Cli;
 
 use Gt\Cli\Argument\ArgumentValueList;
 use Gt\Cli\Command\Command;
 use Gt\Cli\Parameter\Parameter;
 use Gt\Config\ConfigFactory;
-use Gt\Database\Connection\Settings;
-use Gt\Database\Migration\MigrationIntegrityException;
-use Gt\Database\Migration\Migrator;
-use Gt\Database\StatementExecutionException;
-use Gt\Database\StatementPreparationException;
+use GT\Database\Connection\Settings;
+use GT\Database\Migration\MigrationIntegrityException;
+use GT\Database\Migration\Migrator;
+use GT\Database\StatementExecutionException;
+use GT\Database\StatementPreparationException;
 
 class ExecuteCommand extends Command {
 	public function run(?ArgumentValueList $arguments = null):int {

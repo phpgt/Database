@@ -1,6 +1,6 @@
 <?php
-use Gt\Database\Connection\Settings;
-use Gt\Database\Migration\Migrator;
+use GT\Database\Connection\Settings;
+use GT\Database\Migration\Migrator;
 
 chdir(dirname(__DIR__));
 require "vendor/autoload.php";

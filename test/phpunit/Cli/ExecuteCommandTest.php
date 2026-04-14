@@ -1,14 +1,14 @@
 <?php
-namespace Gt\Database\Test\Cli;
+namespace GT\Database\Test\Cli;
 
 use Gt\Cli\Argument\ArgumentValueList;
 use Gt\Cli\Stream;
 use Gt\Config\Config;
 use Gt\Config\ConfigSection;
-use Gt\Database\Cli\ExecuteCommand;
-use Gt\Database\Connection\Settings;
-use Gt\Database\Database;
-use Gt\Database\Test\Helper\Helper;
+use GT\Database\Cli\ExecuteCommand;
+use GT\Database\Connection\Settings;
+use GT\Database\Database;
+use GT\Database\Test\Helper\Helper;
 use Gt\Cli\Parameter\Parameter;
 use PHPUnit\Framework\TestCase;
 use SplFileObject;

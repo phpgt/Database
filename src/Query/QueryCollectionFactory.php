@@ -1,9 +1,9 @@
 <?php
-namespace Gt\Database\Query;
+namespace GT\Database\Query;
 
 use DirectoryIterator;
-use Gt\Database\Connection\Driver;
-use Gt\Database\Database;
+use GT\Database\Connection\Driver;
+use GT\Database\Database;
 use SplFileInfo;
 
 class QueryCollectionFactory {

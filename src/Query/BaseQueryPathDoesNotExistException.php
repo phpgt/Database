@@ -1,7 +1,7 @@
 <?php
-namespace Gt\Database\Query;
+namespace GT\Database\Query;
 
-use Gt\Database\DatabaseException;
+use GT\Database\DatabaseException;
 
 class BaseQueryPathDoesNotExistException extends DatabaseException {
 }

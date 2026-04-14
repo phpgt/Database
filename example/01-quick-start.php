@@ -1,5 +1,5 @@
 <?php
-use Gt\Database\Result\Row;
+use GT\Database\Result\Row;
 
 chdir(dirname(__DIR__));
 require "vendor/autoload.php";
