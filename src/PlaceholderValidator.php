@@ -59,7 +59,8 @@ class PlaceholderValidator {
 			}
 
 			if($character === ":") {
-				if($i + 1 >= $length
+				if(($i > 0 && $sql[$i - 1] === ":")
+				|| $i + 1 >= $length
 				|| $sql[$i + 1] === ":") {
 					continue;
 				}
