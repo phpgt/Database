@@ -3,6 +3,7 @@ namespace GT\Database\Test\Query;
 
 use GT\Database\Connection\Driver;
 use GT\Database\Connection\Settings;
+use GT\Database\MissingParameterException;
 use GT\Database\Query\PreparedStatementException;
 use GT\Database\Query\QueryNotFoundException;
 use GT\Database\Query\SqlQuery;
@@ -215,6 +216,68 @@ class SqlQueryTest extends TestCase {
 				static::assertEquals($value, $row->$key, "Iteration $i");
 			}
 		}
+	}
+
+	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathExistsProvider */
+	public function testMissingIndexedParametersThrowsHelpfulException(
+		string $queryName,
+		string $queryCollectionPath,
+		string $queryPath
+	):void {
+		file_put_contents(
+			$queryPath,
+			"select * from test_table where id = ? and name = ? and timestamp = ?"
+		);
+		$query = new SqlQuery($queryPath, $this->driverSingleton());
+
+		$this->expectException(MissingParameterException::class);
+		$this->expectExceptionMessage(
+			"Too few parameters were bound - expected 3, received 2"
+		);
+		$query->execute([1, "one"]);
+	}
+
+	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathExistsProvider */
+	public function testMissingNamedParametersThrowsHelpfulException(
+		string $queryName,
+		string $queryCollectionPath,
+		string $queryPath
+	):void {
+		file_put_contents(
+			$queryPath,
+			"select * from test_table where name = :name and timestamp > :date"
+		);
+		$query = new SqlQuery($queryPath, $this->driverSingleton());
+
+		$this->expectException(MissingParameterException::class);
+		$this->expectExceptionMessage(
+			"Too few parameters were bound - missing `date`"
+		);
+		$query->execute([
+			"name" => "one",
+		]);
+	}
+
+	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathExistsProvider */
+	public function testMissingNamedParametersIgnoreCommentsAndStrings(
+		string $queryName,
+		string $queryCollectionPath,
+		string $queryPath
+	):void {
+		file_put_contents(
+			$queryPath,
+			"select ':ignored' as literal from test_table -- :comment\n"
+			. "where name = :name and timestamp > :date"
+		);
+		$query = new SqlQuery($queryPath, $this->driverSingleton());
+
+		$this->expectException(MissingParameterException::class);
+		$this->expectExceptionMessage(
+			"Too few parameters were bound - missing `date`"
+		);
+		$query->execute([
+			"name" => "one",
+		]);
 	}
 
 	/**
