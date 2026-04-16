@@ -4,6 +4,7 @@ namespace GT\Database\Test;
 use Exception;
 use GT\Database\Connection\Settings;
 use GT\Database\Database;
+use GT\Database\MissingParameterException;
 use GT\Database\Query\QueryCollection;
 use GT\Database\Query\QueryCollectionClass;
 use GT\Database\Query\QueryCollectionNotFoundException;
@@ -11,6 +12,10 @@ use GT\Database\Query\QueryOverrideConflictException;
 use GT\Database\Test\Helper\Helper;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @noinspection SqlNoDataSourceInspection
+ * @noinspection SqlResolve
+ */
 class DatabaseTest extends TestCase {
 	private ?Settings $settings = null;
 	private string $queryBase;
@@ -303,6 +308,59 @@ class DatabaseTest extends TestCase {
 		self::assertSame("even", $row1->getString("label"));
 		self::assertSame(1, $row1->getInt("total"));
 		self::assertSame(2, $row1->getInt("number_sum"));
+	}
+
+	public function testExecuteSqlMissingNamedParametersThrowsHelpfulException():void {
+		$this->expectException(MissingParameterException::class);
+		$this->expectExceptionMessage("Too few parameters were bound - missing `name`, `number`");
+
+		$sql = <<<SQL
+		select 
+			id,
+			name,
+			number
+		from 
+			test_table
+		where 
+			id = :id 
+		and 
+			name = :name 
+		and 
+			number = :number
+		SQL;
+
+		$this->db->executeSql(
+			$sql,
+			["id" => 1]
+		);
+	}
+
+	public function testExecuteSqlMissingNamedParametersThrowsHelpfulExceptionMoreBoundParameters():void {
+		$this->expectException(MissingParameterException::class);
+		$this->expectExceptionMessage("Too few parameters were bound - missing `name`");
+
+		$sql = <<<SQL
+		select 
+			id,
+			name,
+			number
+		from 
+			test_table
+		where 
+			id = :id 
+		and 
+			name = :name 
+		and 
+			number = :number
+		SQL;
+
+		$this->db->executeSql(
+			$sql,
+			[
+				"id" => 1,
+				"number" => 105,
+			]
+		);
 	}
 
 	private function settingsSingleton():Settings {

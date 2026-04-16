@@ -114,6 +114,7 @@ class Database {
 		}
 
 		try {
+			PlaceholderValidator::validate($query, $bindings);
 			$statement->execute($bindings);
 		}
 		catch(PDOException $exception) {
