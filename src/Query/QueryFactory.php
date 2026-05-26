@@ -14,6 +14,8 @@ class QueryFactory {
 		"sql" => SqlQuery::class,
 		"php" => PhpQuery::class,
 	];
+	/** @var array<string, string> */
+	protected array $queryFilePathCache = [];
 
 	public function __construct(
 		protected string $queryHolder,
@@ -21,13 +23,17 @@ class QueryFactory {
 	) {}
 
 	public function findQueryFilePath(string $name):string {
+		if(isset($this->queryFilePathCache[$name])) {
+			return $this->queryFilePathCache[$name];
+		}
+
 		if(is_dir($this->queryHolder)) {
 			$queryFilePath = $this->findQueryFilePathInDirectory(
 				$this->queryHolder,
 				$name
 			);
 			if($queryFilePath) {
-				return $queryFilePath;
+				return $this->queryFilePathCache[$name] = $queryFilePath;
 			}
 		}
 		elseif(is_file($this->queryHolder)) {
@@ -46,11 +52,11 @@ class QueryFactory {
 						);
 					}
 
-					return $queryFilePath;
+					return $this->queryFilePathCache[$name] = $queryFilePath;
 				}
 			}
 
-			return "$this->queryHolder::$name";
+			return $this->queryFilePathCache[$name] = "$this->queryHolder::$name";
 		}
 
 		throw new QueryNotFoundException($this->queryHolder . ", " . $name);
