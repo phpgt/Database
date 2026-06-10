@@ -46,8 +46,7 @@
 	},
 	"autoload-dev": {
 		"psr-4": {
-			"GT\\Database\\Test\\": "./test/phpunit",
-			"Gt\\Database\\Test\\": "./test/phpunit"
+			"GT\\Database\\Test\\": "./test/phpunit"
 		}
 	},
 
