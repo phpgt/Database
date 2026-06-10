@@ -1,6 +1,6 @@
 <?php /** @noinspection PhpIncompatibleReturnTypeInspection */
 
-namespace Gt\Database\Connection;
+namespace GT\Database\Connection;
 
 trait ImmutableSettings {
 	public function withBaseDirectory(string $baseDirectory):SettingsInterface {

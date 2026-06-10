@@ -1,6 +1,6 @@
 <?php
-use Gt\Database\Connection\Settings;
-use Gt\Database\Database;
+use GT\Database\Connection\Settings;
+use GT\Database\Database;
 
 chdir(dirname(__DIR__));
 require "vendor/autoload.php";

@@ -1,16 +1,16 @@
 <?php
-namespace Gt\Database\Test\Query;
+namespace GT\Database\Test\Query;
 
-use Gt\Database\Connection\Driver;
-use Gt\Database\Connection\DefaultSettings;
-use Gt\Database\Connection\Settings;
-use Gt\Database\DatabaseException;
-use Gt\Database\Query\QueryNotFoundException;
-use Gt\Database\Query\SqlQuery;
+use GT\Database\Connection\Driver;
+use GT\Database\Connection\DefaultSettings;
+use GT\Database\Connection\Settings;
+use GT\Database\DatabaseException;
+use GT\Database\Query\QueryNotFoundException;
+use GT\Database\Query\SqlQuery;
 use PHPUnit\Framework\TestCase;
 
 class QueryTest extends TestCase {
-	/** @dataProvider \Gt\Database\Test\Helper\Helper::queryPathNotExistsProvider */
+	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathNotExistsProvider */
 	public function testConstructionQueryPathNotExists(
 		string $queryName,
 		string $queryCollectionPath,
@@ -21,7 +21,7 @@ class QueryTest extends TestCase {
 	}
 
 	/**
-	 * @dataProvider \Gt\Database\Test\Helper\Helper::queryPathExistsProvider
+	 * @dataProvider \GT\Database\Test\Helper\Helper::queryPathExistsProvider
 	 */
 	public function testConstructionQueryPathExists(
 		string $queryName,
@@ -36,7 +36,7 @@ class QueryTest extends TestCase {
 		}
 	}
 
-	/** @dataProvider \Gt\Database\Test\Helper\Helper::queryPathExistsProvider */
+	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathExistsProvider */
 	public function testExecDoesNotConnect(
 		string $queryName,
 		string $queryCollectionPath,

@@ -1,9 +1,9 @@
 <?php
-namespace Gt\Database\Test\Result;
+namespace GT\Database\Test\Result;
 
 use DateTimeImmutable;
 use DateTimeInterface;
-use Gt\Database\Result\Row;
+use GT\Database\Result\Row;
 use PHPUnit\Framework\TestCase;
 
 class RowTest extends TestCase {

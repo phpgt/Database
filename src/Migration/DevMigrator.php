@@ -1,5 +1,5 @@
 <?php /** @noinspection SqlNoDataSourceInspection */
-namespace Gt\Database\Migration;
+namespace GT\Database\Migration;
 
 class DevMigrator extends AbstractMigrator {
 	const string COLUMN_FILE_NAME = "fileName";

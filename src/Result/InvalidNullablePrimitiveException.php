@@ -1,6 +1,6 @@
 <?php
-namespace Gt\Database\Result;
+namespace GT\Database\Result;
 
-use Gt\Database\DatabaseException;
+use GT\Database\DatabaseException;
 
 class InvalidNullablePrimitiveException extends DatabaseException {}

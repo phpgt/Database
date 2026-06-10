@@ -40,11 +40,13 @@
 
 	"autoload": {
 		"psr-4": {
+			"GT\\Database\\": "./src",
 			"Gt\\Database\\": "./src"
 		}
 	},
 	"autoload-dev": {
 		"psr-4": {
+			"GT\\Database\\Test\\": "./test/phpunit",
 			"Gt\\Database\\Test\\": "./test/phpunit"
 		}
 	},

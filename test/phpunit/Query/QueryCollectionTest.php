@@ -1,17 +1,17 @@
 <?php
-namespace Gt\Database\Test\Query;
+namespace GT\Database\Test\Query;
 
 use DateTime;
-use Gt\Database\Connection\DefaultSettings;
-use Gt\Database\Connection\Driver;
-use Gt\Database\Query\PhpQuery;
-use Gt\Database\Query\Query;
-use Gt\Database\Query\QueryCollection;
-use Gt\Database\Query\QueryCollectionClass;
-use Gt\Database\Query\QueryCollectionDirectory;
-use Gt\Database\Query\QueryFactory;
-use Gt\Database\Result\ResultSet;
-use Gt\Database\Test\Helper\Helper;
+use GT\Database\Connection\DefaultSettings;
+use GT\Database\Connection\Driver;
+use GT\Database\Query\PhpQuery;
+use GT\Database\Query\Query;
+use GT\Database\Query\QueryCollection;
+use GT\Database\Query\QueryCollectionClass;
+use GT\Database\Query\QueryCollectionDirectory;
+use GT\Database\Query\QueryFactory;
+use GT\Database\Result\ResultSet;
+use GT\Database\Test\Helper\Helper;
 use PHPUnit\Framework\TestCase;
 
 class QueryCollectionTest extends TestCase {
@@ -294,7 +294,7 @@ class QueryCollectionTest extends TestCase {
 				new Driver(new DefaultSettings()),
 			);
 
-			self::expectException(\Gt\Database\Query\QueryOverrideConflictException::class);
+			self::expectException(\GT\Database\Query\QueryOverrideConflictException::class);
 			$sut->query("getSource");
 		}
 		finally {

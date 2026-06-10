@@ -1,5 +1,5 @@
 <?php
-namespace Gt\Database\Migration;
+namespace GT\Database\Migration;
 
 use PHPSQLParser\lexer\PHPSQLLexer;
 

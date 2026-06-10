@@ -1,13 +1,13 @@
 <?php
-namespace Gt\Database\Test\Query;
+namespace GT\Database\Test\Query;
 
-use Gt\Database\Connection\Settings;
-use Gt\Database\Connection\Driver;
-use Gt\Database\Query\QueryCollectionClass;
-use Gt\Database\Query\QueryCollectionDirectory;
-use Gt\Database\Query\QueryCollectionFactory;
-use Gt\Database\Query\QueryCollectionNotFoundException;
-use Gt\Database\Test\Helper\Helper;
+use GT\Database\Connection\Settings;
+use GT\Database\Connection\Driver;
+use GT\Database\Query\QueryCollectionClass;
+use GT\Database\Query\QueryCollectionDirectory;
+use GT\Database\Query\QueryCollectionFactory;
+use GT\Database\Query\QueryCollectionNotFoundException;
+use GT\Database\Test\Helper\Helper;
 use PHPUnit\Framework\TestCase;
 
 class QueryCollectionFactoryTest extends TestCase {

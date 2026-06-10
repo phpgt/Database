@@ -1,13 +1,13 @@
 <?php
-namespace Gt\Database\Test\Migration;
+namespace GT\Database\Test\Migration;
 
-use Gt\Database\Connection\Settings;
-use Gt\Database\Database;
-use Gt\Database\Migration\DevMigrator;
-use Gt\Database\Migration\MigrationIntegrityException;
-use Gt\Database\Migration\MigrationSequenceOrderException;
-use Gt\Database\Migration\Migrator;
-use Gt\Database\Test\Helper\Helper;
+use GT\Database\Connection\Settings;
+use GT\Database\Database;
+use GT\Database\Migration\DevMigrator;
+use GT\Database\Migration\MigrationIntegrityException;
+use GT\Database\Migration\MigrationSequenceOrderException;
+use GT\Database\Migration\Migrator;
+use GT\Database\Test\Helper\Helper;
 use PHPUnit\Framework\TestCase;
 
 class DevMigratorTest extends TestCase {
@@ -182,7 +182,7 @@ class DevMigratorTest extends TestCase {
 			$devMigrator->performMigration([$file]);
 			self::fail("The dev migration should fail until the helper table exists.");
 		}
-		catch(\Gt\Database\DatabaseException) {
+		catch(\GT\Database\DatabaseException) {
 		}
 
 		$db = new Database($settings);
@@ -225,7 +225,7 @@ class DevMigratorTest extends TestCase {
 			$devMigrator->performMigration([$file]);
 			self::fail("The dev migration should fail until the helper table exists.");
 		}
-		catch(\Gt\Database\DatabaseException) {
+		catch(\GT\Database\DatabaseException) {
 		}
 
 		file_put_contents($file, implode(";\n", [

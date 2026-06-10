@@ -1,9 +1,9 @@
 <?php
-namespace Gt\Database\Test\Migration;
+namespace GT\Database\Test\Migration;
 
-use Gt\Database\Connection\Settings;
-use Gt\Database\Migration\AbstractMigrator;
-use Gt\Database\Test\Helper\Helper;
+use GT\Database\Connection\Settings;
+use GT\Database\Migration\AbstractMigrator;
+use GT\Database\Test\Helper\Helper;
 use PHPUnit\Framework\TestCase;
 use SplFileObject;
 
@@ -91,7 +91,7 @@ class AbstractMigratorTest extends TestCase {
 		$settings = $this->createSettings($dir, Settings::DRIVER_SQLITE, $dir . "/probe.sqlite");
 		$probe = $this->createProbe($settings, $dir);
 
-		$this->expectException(\Gt\Database\Migration\MigrationSequenceOrderException::class);
+		$this->expectException(\GT\Database\Migration\MigrationSequenceOrderException::class);
 		$probe->checkFileListOrder([$dir . "/002-start.sql"]);
 	}
 
@@ -100,7 +100,7 @@ class AbstractMigratorTest extends TestCase {
 		$settings = $this->createSettings($dir, Settings::DRIVER_SQLITE, $dir . "/probe.sqlite");
 		$probe = $this->createProbe($settings, $dir);
 
-		$this->expectException(\Gt\Database\Migration\MigrationSequenceOrderException::class);
+		$this->expectException(\GT\Database\Migration\MigrationSequenceOrderException::class);
 		$probe->checkFileListOrder([
 			$dir . "/001-first.sql",
 			$dir . "/002-second.sql",
@@ -112,7 +112,7 @@ class AbstractMigratorTest extends TestCase {
 		$dir = $this->createWorkspace();
 		$settings = $this->createSettings($dir, Settings::DRIVER_SQLITE, $dir . "/probe.sqlite");
 		$probe = $this->createProbe($settings, $dir, "_probe");
-		$db = new \Gt\Database\Database($settings);
+		$db = new \GT\Database\Database($settings);
 		$db->executeSql("create table `_probe` (`id` int primary key)");
 
 		$probe->ensureColumnExistsPublic("lastStatement", "int null");
@@ -140,7 +140,7 @@ class AbstractMigratorTest extends TestCase {
 		$hash = $probe->executeSqlFilePublic($sqlFile);
 		self::assertSame(md5_file($sqlFile), $hash);
 
-		$db = new \Gt\Database\Database(
+		$db = new \GT\Database\Database(
 			$this->createSettings($dir, Settings::DRIVER_SQLITE, $databasePath)
 		);
 		$row = $db->executeSql("select name from test where id = 1")->fetch();

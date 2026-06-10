@@ -1,4 +1,4 @@
 <?php
-namespace Gt\Database\Migration;
+namespace GT\Database\Migration;
 
 class MigrationFileNameFormatException extends MigrationException {}

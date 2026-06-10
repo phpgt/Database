@@ -1,5 +1,5 @@
 <?php
-namespace Gt\Database\Result;
+namespace GT\Database\Result;
 
 use Countable;
 use PDO;

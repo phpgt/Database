@@ -1,16 +1,21 @@
 <?php
-namespace Gt\Database\Test;
+namespace GT\Database\Test;
 
 use Exception;
-use Gt\Database\Connection\Settings;
-use Gt\Database\Database;
-use Gt\Database\Query\QueryCollection;
-use Gt\Database\Query\QueryCollectionClass;
-use Gt\Database\Query\QueryCollectionNotFoundException;
-use Gt\Database\Query\QueryOverrideConflictException;
-use Gt\Database\Test\Helper\Helper;
+use GT\Database\Connection\Settings;
+use GT\Database\Database;
+use GT\Database\MissingParameterException;
+use GT\Database\Query\QueryCollection;
+use GT\Database\Query\QueryCollectionClass;
+use GT\Database\Query\QueryCollectionNotFoundException;
+use GT\Database\Query\QueryOverrideConflictException;
+use GT\Database\Test\Helper\Helper;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @noinspection SqlNoDataSourceInspection
+ * @noinspection SqlResolve
+ */
 class DatabaseTest extends TestCase {
 	private ?Settings $settings = null;
 	private string $queryBase;
@@ -40,7 +45,7 @@ class DatabaseTest extends TestCase {
 		static::assertInstanceOf(Database::class, $db);
 	}
 
-	/** @dataProvider \Gt\Database\Test\Helper\Helper::queryCollectionPathExistsProvider */
+	/** @dataProvider \GT\Database\Test\Helper\Helper::queryCollectionPathExistsProvider */
 	public function testQueryCollectionPathExists(string $name, string $path) {
 		$basePath = dirname($path);
 		$settings = new Settings(
@@ -54,7 +59,7 @@ class DatabaseTest extends TestCase {
 		static::assertInstanceOf(QueryCollection::class, $queryCollection);
 	}
 
-	/** @dataProvider \Gt\Database\Test\Helper\Helper::queryPathNotExistsProvider */
+	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathNotExistsProvider */
 	public function testQueryCollectionPathNotExists(string $name, string $path) {
 		$basePath = dirname($path);
 
@@ -69,7 +74,7 @@ class DatabaseTest extends TestCase {
 		$db->queryCollection($name);
 	}
 
-	/** @dataProvider \Gt\Database\Test\Helper\Helper::queryPathNestedProvider */
+	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathNestedProvider */
 	public function testQueryCollectionDots(
 		array $nameParts,
 		string $path,
@@ -88,7 +93,7 @@ class DatabaseTest extends TestCase {
 		self::assertInstanceOf(QueryCollection::class, $queryCollection);
 	}
 
-	/** @dataProvider \Gt\Database\Test\Helper\Helper::queryCollectionPathNotExistsProvider() */
+	/** @dataProvider \GT\Database\Test\Helper\Helper::queryCollectionPathNotExistsProvider() */
 	public function testQueryCollectionPhp(
 		string $name,
 		string $path,
@@ -303,6 +308,59 @@ class DatabaseTest extends TestCase {
 		self::assertSame("even", $row1->getString("label"));
 		self::assertSame(1, $row1->getInt("total"));
 		self::assertSame(2, $row1->getInt("number_sum"));
+	}
+
+	public function testExecuteSqlMissingNamedParametersThrowsHelpfulException():void {
+		$this->expectException(MissingParameterException::class);
+		$this->expectExceptionMessage("Too few parameters were bound - missing `name`, `number`");
+
+		$sql = <<<SQL
+			select
+			id,
+			name,
+			number
+			from
+			test_table
+			where
+				id = :id
+			and
+				name = :name
+			and
+			number = :number
+		SQL;
+
+		$this->db->executeSql(
+			$sql,
+			["id" => 1]
+		);
+	}
+
+	public function testExecuteSqlMissingNamedParametersThrowsHelpfulExceptionMoreBoundParameters():void {
+		$this->expectException(MissingParameterException::class);
+		$this->expectExceptionMessage("Too few parameters were bound - missing `name`");
+
+		$sql = <<<SQL
+			select
+			id,
+			name,
+			number
+			from
+			test_table
+			where
+				id = :id
+			and
+				name = :name
+			and
+			number = :number
+		SQL;
+
+		$this->db->executeSql(
+			$sql,
+			[
+				"id" => 1,
+				"number" => 105,
+			]
+		);
 	}
 
 	private function settingsSingleton():Settings {

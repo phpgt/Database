@@ -1,4 +1,4 @@
 <?php
-namespace Gt\Database;
+namespace GT\Database;
 
 class StatementExecutionException extends DatabaseException {}

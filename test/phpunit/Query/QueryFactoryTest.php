@@ -1,22 +1,22 @@
 <?php
-namespace Gt\Database\Test\Query;
+namespace GT\Database\Test\Query;
 
-use Gt\Database\Connection\DefaultSettings;
-use Gt\Database\Connection\Driver;
-use Gt\Database\Connection\ConnectionNotConfiguredException;
-use Gt\Database\Query\PhpQuery;
-use Gt\Database\Query\Query;
-use Gt\Database\Query\QueryFactory;
-use Gt\Database\Query\QueryFileExtensionException;
-use Gt\Database\Query\QueryNotFoundException;
-use Gt\Database\Query\QueryOverrideConflictException;
-use Gt\Database\Query\SqlQuery;
-use Gt\Database\Test\Helper\Helper;
+use GT\Database\Connection\DefaultSettings;
+use GT\Database\Connection\Driver;
+use GT\Database\Connection\ConnectionNotConfiguredException;
+use GT\Database\Query\PhpQuery;
+use GT\Database\Query\Query;
+use GT\Database\Query\QueryFactory;
+use GT\Database\Query\QueryFileExtensionException;
+use GT\Database\Query\QueryNotFoundException;
+use GT\Database\Query\QueryOverrideConflictException;
+use GT\Database\Query\SqlQuery;
+use GT\Database\Test\Helper\Helper;
 use PHPUnit\Framework\TestCase;
 
 class QueryFactoryTest extends TestCase {
 	/**
-	 * @dataProvider \Gt\Database\Test\Helper\Helper::queryPathExistsProvider
+	 * @dataProvider \GT\Database\Test\Helper\Helper::queryPathExistsProvider
 	 */
 	public function testFindQueryFilePathExists(
 		string $queryName,
@@ -30,7 +30,7 @@ class QueryFactoryTest extends TestCase {
 		static::assertFileExists($queryFilePath);
 	}
 
-	/** @dataProvider \Gt\Database\Test\Helper\Helper::queryPathNotExistsProvider */
+	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathNotExistsProvider */
 	public function testFindQueryFilePathNotExists(
 		string $queryName,
 		string $directoryOfQueries
@@ -44,7 +44,7 @@ class QueryFactoryTest extends TestCase {
 		$queryFactory->findQueryFilePath($queryName);
 	}
 
-	/** @dataProvider \Gt\Database\Test\Helper\Helper::queryPathExtensionNotValidProvider */
+	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathExtensionNotValidProvider */
 	public function testFindQueryFilePathWithInvalidExtension(
 		string $queryName,
 		string $directoryOfQueries
@@ -58,7 +58,7 @@ class QueryFactoryTest extends TestCase {
 		$queryFactory->findQueryFilePath($queryName);
 	}
 
-	/** @dataProvider \Gt\Database\Test\Helper\Helper::queryPathExistsProvider */
+	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathExistsProvider */
 	public function testQueryCreated(
 		string $queryName,
 		string $directoryOfQueries
@@ -97,7 +97,7 @@ class QueryFactoryTest extends TestCase {
 		}
 	}
 
-	/** @dataProvider \Gt\Database\Test\Helper\Helper::queryPathNotExistsProvider */
+	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathNotExistsProvider */
 	public function testCreatePhp(
 		string $queryName,
 		string $directoryOfQueries,

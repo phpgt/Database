@@ -1,8 +1,8 @@
 <?php
-namespace Gt\Database\Test\Connection;
+namespace GT\Database\Test\Connection;
 
-use Gt\Database\Connection\DefaultSettings;
-use Gt\Database\Connection\Settings;
+use GT\Database\Connection\DefaultSettings;
+use GT\Database\Connection\Settings;
 use PHPUnit\Framework\TestCase;
 
 class SettingsTest extends TestCase {

@@ -1,13 +1,13 @@
 <?php
-namespace Gt\Database\Query;
+namespace GT\Database\Query;
 
 use SplFileInfo;
 use DirectoryIterator;
 use Exception;
 use InvalidArgumentException;
 use ReflectionClass;
-use Gt\Database\Connection\Driver;
-use Gt\Database\Connection\ConnectionNotConfiguredException;
+use GT\Database\Connection\Driver;
+use GT\Database\Connection\ConnectionNotConfiguredException;
 
 class QueryFactory {
 	const CLASS_FOR_EXTENSION = [

@@ -1,5 +1,5 @@
 <?php
-namespace Gt\Database\Test\Helper;
+namespace GT\Database\Test\Helper;
 
 class Helper {
 	const COUNT_PATH_PROVIDER = 10;

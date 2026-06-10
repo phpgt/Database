@@ -1,7 +1,7 @@
 <?php
-namespace Gt\Database\Test\Migration;
+namespace GT\Database\Test\Migration;
 
-use Gt\Database\Migration\SqlStatementSplitter;
+use GT\Database\Migration\SqlStatementSplitter;
 use PHPUnit\Framework\TestCase;
 
 class SqlStatementSplitterTest extends TestCase {

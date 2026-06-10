@@ -1,10 +1,10 @@
 <?php /** @noinspection ALL */
-namespace Gt\Database\Migration;
+namespace GT\Database\Migration;
 
 use Exception;
-use Gt\Database\Connection\Settings;
-use Gt\Database\Database;
-use Gt\Database\DatabaseException;
+use GT\Database\Database;
+use GT\Database\Connection\Settings;
+use GT\Database\DatabaseException;
 
 /**
  * @SuppressWarnings(PHPMD.ExcessiveClassComplexity)

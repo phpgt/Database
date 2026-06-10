@@ -1,5 +1,5 @@
 <?php
-namespace Gt\Database\Connection;
+namespace GT\Database\Connection;
 
 use PDO;
 

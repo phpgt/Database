@@ -1,13 +1,14 @@
 <?php
-namespace Gt\Database\Test\Query;
+namespace GT\Database\Test\Query;
 
-use Gt\Database\Connection\Driver;
-use Gt\Database\Connection\Settings;
-use Gt\Database\Query\PreparedStatementException;
-use Gt\Database\Query\QueryNotFoundException;
-use Gt\Database\Query\SqlQuery;
+use GT\Database\Connection\Driver;
+use GT\Database\Connection\Settings;
+use GT\Database\MissingParameterException;
+use GT\Database\Query\PreparedStatementException;
+use GT\Database\Query\QueryNotFoundException;
+use GT\Database\Query\SqlQuery;
 use PHPUnit\Framework\TestCase;
-use Gt\Database\Test\Helper\Helper;
+use GT\Database\Test\Helper\Helper;
 
 class SqlQueryTest extends TestCase {
 	/** @var Driver */
@@ -29,7 +30,7 @@ class SqlQueryTest extends TestCase {
 		static::assertTrue($success, "Success inserting fake data");
 	}
 
-	/** @dataProvider \Gt\Database\Test\Helper\Helper::queryPathNotExistsProvider */
+	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathNotExistsProvider */
 	public function testQueryNotFound(
 		string $queryName,
 		string $queryCollectionPath,
@@ -40,7 +41,7 @@ class SqlQueryTest extends TestCase {
 	}
 
 	/**
-	 * @dataProvider \Gt\Database\Test\Helper\Helper::queryPathExistsProvider
+	 * @dataProvider \GT\Database\Test\Helper\Helper::queryPathExistsProvider
 	 */
 	public function testQueryFound(
 		string $queryName,
@@ -51,7 +52,7 @@ class SqlQueryTest extends TestCase {
 		static::assertFileExists($query->getFilePath());
 	}
 
-	/** @dataProvider \Gt\Database\Test\Helper\Helper::queryPathExistsProvider */
+	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathExistsProvider */
 	public function testBadPreparedStatementThrowsException(
 		string $queryName,
 		string $queryCollectionPath,
@@ -64,7 +65,7 @@ class SqlQueryTest extends TestCase {
 	}
 
 	/**
-	 * @dataProvider \Gt\Database\Test\Helper\Helper::queryPathExistsProvider
+	 * @dataProvider \GT\Database\Test\Helper\Helper::queryPathExistsProvider
 	 */
 	public function testPreparedStatement(
 		string $queryName,
@@ -83,7 +84,7 @@ class SqlQueryTest extends TestCase {
 	}
 
 	/**
-	 * @dataProvider \Gt\Database\Test\Helper\Helper::queryPathExistsProvider
+	 * @dataProvider \GT\Database\Test\Helper\Helper::queryPathExistsProvider
 	 */
 	public function testLastInsertId(
 		string $queryName,
@@ -140,7 +141,7 @@ class SqlQueryTest extends TestCase {
 	}
 
 	/**
-	 * @dataProvider \Gt\Database\Test\Helper\Helper::queryPathExistsProvider
+	 * @dataProvider \GT\Database\Test\Helper\Helper::queryPathExistsProvider
 	 */
 	public function testPlaceholderReplacement(
 		string $queryName,
@@ -159,7 +160,7 @@ class SqlQueryTest extends TestCase {
 	}
 
 	/**
-	 * @dataProvider \Gt\Database\Test\Helper\Helper::queryPathExistsProvider
+	 * @dataProvider \GT\Database\Test\Helper\Helper::queryPathExistsProvider
 	 */
 	public function testPlaceholderReplacementInComments(
 		string $queryName,
@@ -217,8 +218,70 @@ class SqlQueryTest extends TestCase {
 		}
 	}
 
+	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathExistsProvider */
+	public function testMissingIndexedParametersThrowsHelpfulException(
+		string $queryName,
+		string $queryCollectionPath,
+		string $queryPath
+	):void {
+		file_put_contents(
+			$queryPath,
+			"select * from test_table where id = ? and name = ? and timestamp = ?"
+		);
+		$query = new SqlQuery($queryPath, $this->driverSingleton());
+
+		$this->expectException(MissingParameterException::class);
+		$this->expectExceptionMessage(
+			"Too few parameters were bound - expected 3, received 2"
+		);
+		$query->execute([1, "one"]);
+	}
+
+	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathExistsProvider */
+	public function testMissingNamedParametersThrowsHelpfulException(
+		string $queryName,
+		string $queryCollectionPath,
+		string $queryPath
+	):void {
+		file_put_contents(
+			$queryPath,
+			"select * from test_table where name = :name and timestamp > :date"
+		);
+		$query = new SqlQuery($queryPath, $this->driverSingleton());
+
+		$this->expectException(MissingParameterException::class);
+		$this->expectExceptionMessage(
+			"Too few parameters were bound - missing `date`"
+		);
+		$query->execute([
+			"name" => "one",
+		]);
+	}
+
+	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathExistsProvider */
+	public function testMissingNamedParametersIgnoreCommentsAndStrings(
+		string $queryName,
+		string $queryCollectionPath,
+		string $queryPath
+	):void {
+		file_put_contents(
+			$queryPath,
+			"select ':ignored' as literal from test_table -- :comment\n"
+			. "where name = :name and timestamp > :date"
+		);
+		$query = new SqlQuery($queryPath, $this->driverSingleton());
+
+		$this->expectException(MissingParameterException::class);
+		$this->expectExceptionMessage(
+			"Too few parameters were bound - missing `date`"
+		);
+		$query->execute([
+			"name" => "one",
+		]);
+	}
+
 	/**
-	 * @dataProvider \Gt\Database\Test\Helper\Helper::queryPathNotExistsProvider()
+	 * @dataProvider \GT\Database\Test\Helper\Helper::queryPathNotExistsProvider()
 	 */
 	public function testSpecialBindingsNoAscDesc(
 		string $queryName,
@@ -244,7 +307,7 @@ class SqlQueryTest extends TestCase {
 	}
 
 	/**
-	 * @dataProvider \Gt\Database\Test\Helper\Helper::queryPathNotExistsProvider()
+	 * @dataProvider \GT\Database\Test\Helper\Helper::queryPathNotExistsProvider()
 	 */
 	public function testSpecialBindingsAscDesc(
 		string $queryName,
@@ -264,7 +327,7 @@ class SqlQueryTest extends TestCase {
 	}
 
 	/**
-	 * @dataProvider \Gt\Database\Test\Helper\Helper::queryPathNotExistsProvider()
+	 * @dataProvider \GT\Database\Test\Helper\Helper::queryPathNotExistsProvider()
 	 */
 	public function testSpecialBindingsInClause(
 		string $queryName,
@@ -302,7 +365,7 @@ class SqlQueryTest extends TestCase {
 	}
 
 	/**
-	 * @dataProvider \Gt\Database\Test\Helper\Helper::queryPathNotExistsProvider()
+	 * @dataProvider \GT\Database\Test\Helper\Helper::queryPathNotExistsProvider()
 	 */
 	public function testDynamicBindingsInsertMultiple(
 		string $queryName,
@@ -342,7 +405,7 @@ class SqlQueryTest extends TestCase {
 	}
 
 	/**
-	 * @dataProvider \Gt\Database\Test\Helper\Helper::queryPathNotExistsProvider()
+	 * @dataProvider \GT\Database\Test\Helper\Helper::queryPathNotExistsProvider()
 	 */
 	public function testDynamicBindingsWhereIn(
 		string $queryName,
@@ -367,7 +430,7 @@ class SqlQueryTest extends TestCase {
 	}
 
 	/**
-	 * @dataProvider \Gt\Database\Test\Helper\Helper::queryPathNotExistsProvider()
+	 * @dataProvider \GT\Database\Test\Helper\Helper::queryPathNotExistsProvider()
 	 */
 	public function testDynamicBindingsWhereInStrings(
 		string $queryName,
@@ -391,7 +454,7 @@ class SqlQueryTest extends TestCase {
 	}
 
 	/**
-	 * @dataProvider \Gt\Database\Test\Helper\Helper::queryPathNotExistsProvider()
+	 * @dataProvider \GT\Database\Test\Helper\Helper::queryPathNotExistsProvider()
 	 */
 	public function testDynamicBindingsOr(
 		string $queryName,
@@ -418,7 +481,7 @@ class SqlQueryTest extends TestCase {
 	}
 
 	/**
-	 * @dataProvider \Gt\Database\Test\Helper\Helper::queryPathNotExistsProvider()
+	 * @dataProvider \GT\Database\Test\Helper\Helper::queryPathNotExistsProvider()
 	 */
 	public function testPrepareBindingsWithArray(
 		string $queryName,
@@ -456,7 +519,7 @@ class SqlQueryTest extends TestCase {
 		);
 	}
 
-	/** @dataProvider \Gt\Database\Test\Helper\Helper::queryPathExistsProvider() */
+	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathExistsProvider() */
 	public function testMultipleStatements(
 		string $queryName,
 		string $queryCollectionPath,

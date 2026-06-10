@@ -1,8 +1,8 @@
 <?php
-namespace Gt\Database\Test\Connection;
+namespace GT\Database\Test\Connection;
 
 use DeepCopyTest\Filter\SetNullFilterTest;
-use Gt\Database\Connection\DefaultSettings;
+use GT\Database\Connection\DefaultSettings;
 use PHPUnit\Framework\TestCase;
 
 class ImmutableSettingsTest extends TestCase {

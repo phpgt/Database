@@ -1,9 +1,10 @@
 <?php
-namespace Gt\Database\Query;
+namespace GT\Database\Query;
 
 use DateTimeInterface;
-use Gt\Database\Connection\Connection;
-use Gt\Database\Result\ResultSet;
+use GT\Database\Connection\Connection;
+use GT\Database\PlaceholderValidator;
+use GT\Database\Result\ResultSet;
 use PDO;
 use PDOException;
 use PDOStatement;
@@ -64,6 +65,7 @@ abstract class Query {
 			$preparedBindings = $this->prepareBindings($bindings);
 			$preparedBindings = $this->ensureParameterCharacter($preparedBindings);
 			$preparedBindings = $this->removeUnusedBindings($preparedBindings, $sql);
+			PlaceholderValidator::validate($sql, $preparedBindings);
 
 			try {
 				$statement->execute($preparedBindings);

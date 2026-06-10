@@ -1,6 +1,6 @@
 <?php
-use Gt\Database\Connection\Settings;
-use Gt\Database\Database;
+use GT\Database\Connection\Settings;
+use GT\Database\Database;
 
 function createExampleWorkspace(string $exampleName):array {
 	$workspace = implode(DIRECTORY_SEPARATOR, [

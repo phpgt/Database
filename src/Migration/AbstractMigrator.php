@@ -1,8 +1,8 @@
 <?php
-namespace Gt\Database\Migration;
+namespace GT\Database\Migration;
 
-use Gt\Database\Connection\Settings;
-use Gt\Database\Database;
+use GT\Database\Connection\Settings;
+use GT\Database\Database;
 use SplFileInfo;
 use SplFileObject;
 

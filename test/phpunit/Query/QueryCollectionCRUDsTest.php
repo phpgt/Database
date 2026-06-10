@@ -1,14 +1,14 @@
 <?php
-namespace Gt\Database\Test\Query;
+namespace GT\Database\Test\Query;
 
-use Gt\Database\Connection\DefaultSettings;
-use Gt\Database\Connection\Driver;
-use Gt\Database\Query\Query;
-use Gt\Database\Query\QueryCollection;
-use Gt\Database\Query\QueryCollectionDirectory;
-use Gt\Database\Query\QueryFactory;
-use Gt\Database\Result\ResultSet;
-use Gt\Database\Result\Row;
+use GT\Database\Connection\DefaultSettings;
+use GT\Database\Connection\Driver;
+use GT\Database\Query\Query;
+use GT\Database\Query\QueryCollection;
+use GT\Database\Query\QueryCollectionDirectory;
+use GT\Database\Query\QueryFactory;
+use GT\Database\Result\ResultSet;
+use GT\Database\Result\Row;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 

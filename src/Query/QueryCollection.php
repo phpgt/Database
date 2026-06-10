@@ -1,9 +1,9 @@
 <?php
-namespace Gt\Database\Query;
+namespace GT\Database\Query;
 
-use Gt\Database\Connection\Driver;
-use Gt\Database\Fetchable;
-use Gt\Database\Result\ResultSet;
+use GT\Database\Connection\Driver;
+use GT\Database\Fetchable;
+use GT\Database\Result\ResultSet;
 
 abstract class QueryCollection {
 	use Fetchable;

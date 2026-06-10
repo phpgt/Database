@@ -1,13 +1,13 @@
 <?php
-namespace Gt\Database\Test;
+namespace GT\Database\Test;
 
 use DateTime;
 use DateTimeInterface;
 use Exception;
-use Gt\Database\Connection\Driver;
-use Gt\Database\Connection\Settings;
-use Gt\Database\Database;
-use Gt\Database\Test\Helper\Helper;
+use GT\Database\Connection\Driver;
+use GT\Database\Connection\Settings;
+use GT\Database\Database;
+use GT\Database\Test\Helper\Helper;
 use PHPUnit\Framework\TestCase;
 
 class IntegrationTest extends TestCase {
