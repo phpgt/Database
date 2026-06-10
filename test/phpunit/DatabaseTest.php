@@ -315,17 +315,17 @@ class DatabaseTest extends TestCase {
 		$this->expectExceptionMessage("Too few parameters were bound - missing `name`, `number`");
 
 		$sql = <<<SQL
-		select 
+			select
 			id,
 			name,
 			number
-		from 
+			from
 			test_table
-		where 
-			id = :id 
-		and 
-			name = :name 
-		and 
+			where
+				id = :id
+			and
+				name = :name
+			and
 			number = :number
 		SQL;
 
@@ -340,17 +340,17 @@ class DatabaseTest extends TestCase {
 		$this->expectExceptionMessage("Too few parameters were bound - missing `name`");
 
 		$sql = <<<SQL
-		select 
+			select
 			id,
 			name,
 			number
-		from 
+			from
 			test_table
-		where 
-			id = :id 
-		and 
-			name = :name 
-		and 
+			where
+				id = :id
+			and
+				name = :name
+			and
 			number = :number
 		SQL;
 
