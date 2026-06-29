@@ -402,4 +402,67 @@ class QueryFactoryTest extends TestCase {
 			Helper::deleteDir($basePath);
 		}
 	}
+
+	public function testFindQueryFilePathCachesResolvedPaths():void {
+		$basePath = Helper::getTmpDir();
+		$queryDirectory = implode(DIRECTORY_SEPARATOR, [
+			$basePath,
+			"query",
+		]);
+		mkdir($queryDirectory, 0775, true);
+		file_put_contents("$queryDirectory/report.sql", "select 1");
+
+		try {
+			$sut = $this->createCountingQueryFactory($queryDirectory);
+
+			$firstPath = $sut->findQueryFilePath("report");
+			$secondPath = $sut->findQueryFilePath("report");
+
+			self::assertSame($firstPath, $secondPath);
+			self::assertSame(1, $sut->directoryScanCount);
+		}
+		finally {
+			Helper::deleteDir($basePath);
+		}
+	}
+
+	public function testCreateCachesResolvedPathsBetweenCalls():void {
+		$basePath = Helper::getTmpDir();
+		$queryDirectory = implode(DIRECTORY_SEPARATOR, [
+			$basePath,
+			"query",
+		]);
+		mkdir($queryDirectory, 0775, true);
+		file_put_contents("$queryDirectory/report.sql", "select 1");
+
+		try {
+			$sut = $this->createCountingQueryFactory($queryDirectory);
+
+			$firstQuery = $sut->create("report");
+			$secondQuery = $sut->create("report");
+
+			self::assertSame($firstQuery->getFilePath(), $secondQuery->getFilePath());
+			self::assertSame(1, $sut->directoryScanCount);
+		}
+		finally {
+			Helper::deleteDir($basePath);
+		}
+	}
+
+	private function createCountingQueryFactory(string $queryDirectory):QueryFactory {
+		return new class(
+			$queryDirectory,
+			new Driver(new DefaultSettings())
+		) extends QueryFactory {
+			public int $directoryScanCount = 0;
+
+			protected function findQueryFilePathInDirectory(
+				string $directory,
+				string $name,
+			):?string {
+				$this->directoryScanCount++;
+				return parent::findQueryFilePathInDirectory($directory, $name);
+			}
+		};
+	}
 }
