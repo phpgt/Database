@@ -40,15 +40,26 @@ class ExecuteCommand extends Command {
 
 		$runFrom = $this->calculateResetNumber($arguments, $migrationFileList, $migrator, $migrationCount);
 
-		$this->executeMigrations($migrator, $migrationFileList, $runFrom);
+		if(!$this->executeMigrations($migrator, $migrationFileList, $runFrom)) {
+			return 1;
+		}
 
 		if($this->isDevMerge($arguments)) {
-			$this->mergeDevMigrations($settings, $migrator, $migrationPath, $devMigrationPath, $devMigrationTable);
-			return 0;
+			return $this->mergeDevMigrations(
+				$settings,
+				$migrator,
+				$migrationPath,
+				$devMigrationPath,
+				$devMigrationTable,
+			) ? 0 : 1;
 		}
 
 		if($this->isDev($arguments)) {
-			$this->executeDevMigrations($settings, $devMigrationPath, $devMigrationTable);
+			return $this->executeDevMigrations(
+				$settings,
+				$devMigrationPath,
+				$devMigrationTable,
+			) ? 0 : 1;
 		}
 
 		return 0;
@@ -212,10 +223,11 @@ class ExecuteCommand extends Command {
 		Migrator $migrator,
 		array $migrationFileList,
 		int $runFrom,
-	): void {
+	):bool {
 		try {
 			$migrator->checkIntegrity($migrationFileList, $runFrom);
 			$migrator->performMigration($migrationFileList, $runFrom);
+			return true;
 		}
 		catch(MigrationIntegrityException $exception) {
 			$this->writeLine(
@@ -224,6 +236,7 @@ class ExecuteCommand extends Command {
 				. "' - this migration is recorded to have been run already, "
 				. "but the contents of the file has changed.\nFor help, see "
 				. "https://www.php.gt/database/migrations#integrity-error");
+			return false;
 		}
 		catch(StatementPreparationException|StatementExecutionException $exception) {
 			$this->writeLine(
@@ -231,6 +244,7 @@ class ExecuteCommand extends Command {
 				. $exception->getMessage()
 				. "'\nFor help, see https://www.php.gt/database/migrations#error"
 			);
+			return false;
 		}
 	}
 
@@ -238,7 +252,7 @@ class ExecuteCommand extends Command {
 		Settings $settings,
 		string $devMigrationPath,
 		string $devMigrationTable
-	): void {
+	):bool {
 		$devMigrator = new DevMigrator(
 			$settings,
 			$devMigrationPath,
@@ -256,6 +270,7 @@ class ExecuteCommand extends Command {
 			$devMigrator->checkFileListOrder($devMigrationFileList);
 			$devMigrator->checkIntegrity($devMigrationFileList);
 			$devMigrator->performMigration($devMigrationFileList);
+			return true;
 		}
 		catch(MigrationIntegrityException $exception) {
 			$this->writeLine(
@@ -264,6 +279,7 @@ class ExecuteCommand extends Command {
 				. "' - this dev migration is recorded to have been run already, "
 				. "but the contents of the file has changed."
 			);
+			return false;
 		}
 		catch(StatementPreparationException|StatementExecutionException $exception) {
 			$this->writeLine(
@@ -271,6 +287,7 @@ class ExecuteCommand extends Command {
 				. $exception->getMessage()
 				. "'"
 			);
+			return false;
 		}
 	}
 
@@ -280,7 +297,7 @@ class ExecuteCommand extends Command {
 		string $migrationPath,
 		string $devMigrationPath,
 		string $devMigrationTable
-	): void {
+	):bool {
 		$devMigrator = new DevMigrator($settings, $devMigrationPath, $devMigrationTable);
 		$devMigrator->setOutput(
 			$this->stream->getOutStream(),
@@ -290,6 +307,7 @@ class ExecuteCommand extends Command {
 
 		try {
 			$devMigrator->mergeIntoMainMigrationDirectory($migrator, $migrationPath);
+			return true;
 		}
 		catch(MigrationIntegrityException $exception) {
 			$this->writeLine(
@@ -297,6 +315,7 @@ class ExecuteCommand extends Command {
 				. $exception->getMessage()
 				. "' - ensure the dev migration has already been run and not edited since."
 			);
+			return false;
 		}
 	}
 

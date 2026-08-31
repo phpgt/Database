@@ -212,6 +212,34 @@ class ExecuteCommandTest extends TestCase {
 		}
 	}
 
+	public function testExecuteReturnsFailureForInvalidMigrationSql():void {
+		$project = $this->createProjectDir();
+		$sqlitePath = str_replace("\\", "/", $project . DIRECTORY_SEPARATOR . "cli-test.db");
+		$this->writeConfigIni($project, $sqlitePath);
+		$this->createMultiStatementMigration(
+			$project,
+			"0001-invalid.sql",
+			"this is not valid sql",
+		);
+
+		$cwdBackup = getcwd();
+		chdir($project);
+		try {
+			$command = new ExecuteCommand();
+			$streams = $this->makeStreamFiles();
+			$command->setStream($streams["stream"]);
+
+			$status = $command->run(new ArgumentValueList());
+
+			self::assertSame(1, $status);
+			list("out" => $out) = $this->readFromFiles($streams["out"], $streams["err"]);
+			self::assertStringContainsString("error executing migration file", $out);
+		}
+		finally {
+			chdir($cwdBackup);
+		}
+	}
+
 	public function testExecuteWithResetWithoutNumber():void {
 		$project = $this->createProjectDir();
 		$sqlitePath = str_replace("\\", "/", $project . DIRECTORY_SEPARATOR . "cli-test.db");
@@ -490,10 +518,11 @@ class ExecuteCommandTest extends TestCase {
 
 			$errorStreams = $this->makeStreamFiles();
 			$cmd->setStream($errorStreams["stream"]);
-			$cmd->run($args);
+			$status = $cmd->run($args);
 
 			list("out" => $out) = $this->readFromFiles($errorStreams["out"], $errorStreams["err"]);
 			self::assertStringContainsString("integrity error migrating dev file", $out);
+			self::assertSame(1, $status);
 		}
 		finally {
 			chdir($cwdBackup);
@@ -517,10 +546,11 @@ class ExecuteCommandTest extends TestCase {
 
 			$args = new ArgumentValueList();
 			$args->set("dev");
-			$cmd->run($args);
+			$status = $cmd->run($args);
 
 			list("out" => $out) = $this->readFromFiles($streams["out"], $streams["err"]);
 			self::assertStringContainsString("error executing dev migration file", $out);
+			self::assertSame(1, $status);
 		}
 		finally {
 			chdir($cwdBackup);
@@ -555,10 +585,11 @@ class ExecuteCommandTest extends TestCase {
 
 			$errorStreams = $this->makeStreamFiles();
 			$cmd->setStream($errorStreams["stream"]);
-			$cmd->run(new ArgumentValueList());
+			$status = $cmd->run(new ArgumentValueList());
 
 			list("out" => $out) = $this->readFromFiles($errorStreams["out"], $errorStreams["err"]);
 			self::assertStringContainsString("integrity error migrating file", $out);
+			self::assertSame(1, $status);
 		}
 		finally {
 			chdir($cwdBackup);
@@ -589,10 +620,11 @@ class ExecuteCommandTest extends TestCase {
 			$cmd->setStream($mergeStreams["stream"]);
 			$mergeArgs = new ArgumentValueList();
 			$mergeArgs->set("dev-merge");
-			$cmd->run($mergeArgs);
+			$status = $cmd->run($mergeArgs);
 
 			list("out" => $out) = $this->readFromFiles($mergeStreams["out"], $mergeStreams["err"]);
 			self::assertStringContainsString("integrity error merging dev migration file", $out);
+			self::assertSame(1, $status);
 		}
 		finally {
 			chdir($cwdBackup);
