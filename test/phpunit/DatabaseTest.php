@@ -143,12 +143,12 @@ class DatabaseTest extends TestCase {
 
 				public function updateHalfNumber():UpdateQuery {
 					return new class() extends UpdateQuery {
-						public function update():array {
+						public function table():array {
 							return ["test_table"];
 						}
 
 						public function set():array {
-							return ["halfNumber"];
+							return [":halfNumber"];
 						}
 
 						public function where():array {

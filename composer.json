@@ -30,8 +30,7 @@
 		{
 			"name": "James Fellows",
 			"email": "james.fellows@finanscapes.com"
-		}
-	,
+		},
 		{
 			"name": "Christopher Paul Shaw",
 			"email": "i-am-in-your-code-stealing-your-lulz@chris-shaw.com"
@@ -52,14 +51,14 @@
 
 	"scripts": {
 		"phpunit": "vendor/bin/phpunit --configuration phpunit.xml",
-		"phpstan": "vendor/bin/phpstan analyse --level 6 --memory-limit 1G src",
 		"phpcs": "vendor/bin/phpcs src --standard=phpcs.xml",
 		"phpmd": "vendor/bin/phpmd src/ text phpmd.xml",
+		"phpstan": "vendor/bin/phpstan analyse --level 6 --memory-limit 1G src",
 		"test": [
 			"@phpunit",
-			"@phpstan",
 			"@phpcs",
-			"@phpmd"
+			"@phpmd",
+			"@phpstan"
 		]
 	},
 
