@@ -5,8 +5,8 @@
  * stores the currently-migrated schema version within the database itself.
  */
 
-use Gt\Cli\Application;
-use Gt\Cli\Argument\CommandArgumentList;
+use GT\Cli\Application;
+use GT\Cli\Argument\CommandArgumentList;
 use GT\Database\Cli\ExecuteCommand;
 
 // The script must be run from the context of a project's root directory.

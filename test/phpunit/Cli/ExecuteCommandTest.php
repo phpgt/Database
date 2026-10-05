@@ -1,15 +1,15 @@
 <?php /** @noinspection SqlResolve,SqlNoDataSourceInspection */
 namespace GT\Database\Test\Cli;
 
-use Gt\Cli\Argument\ArgumentValueList;
-use Gt\Cli\Stream;
-use Gt\Config\Config;
-use Gt\Config\ConfigSection;
+use GT\Cli\Argument\ArgumentValueList;
+use GT\Cli\Stream;
+use GT\Config\Config;
+use GT\Config\ConfigSection;
 use GT\Database\Cli\ExecuteCommand;
 use GT\Database\Connection\Settings;
 use GT\Database\Database;
 use GT\Database\Test\Helper\Helper;
-use Gt\Cli\Parameter\Parameter;
+use GT\Cli\Parameter\Parameter;
 use PHPUnit\Framework\TestCase;
 use SplFileObject;
 

@@ -1,11 +1,11 @@
 <?php
 namespace GT\Database\Cli;
 
-use Gt\Cli\Argument\ArgumentValueList;
-use Gt\Cli\Command\Command;
-use Gt\Cli\Parameter\Parameter;
-use Gt\Config\Config;
-use Gt\Config\ConfigFactory;
+use GT\Cli\Argument\ArgumentValueList;
+use GT\Cli\Command\Command;
+use GT\Cli\Parameter\Parameter;
+use GT\Config\Config;
+use GT\Config\ConfigFactory;
 use GT\Database\Connection\Settings;
 use GT\Database\Migration\DevMigrator;
 use GT\Database\Migration\MigrationIntegrityException;
