@@ -129,9 +129,9 @@ class DatabaseTest extends TestCase {
 			<?php
 			namespace App\Query;
 
-			use Gt\SqlBuilder\DeleteBuilder;
-			use Gt\SqlBuilder\InsertBuilder;
-			use Gt\SqlBuilder\Query\UpdateQuery;
+			use GT\SqlBuilder\DeleteBuilder;
+			use GT\SqlBuilder\InsertBuilder;
+			use GT\SqlBuilder\Query\UpdateQuery;
 
 			class UserCrud {
 				public function insertUser():InsertBuilder {
@@ -143,12 +143,12 @@ class DatabaseTest extends TestCase {
 
 				public function updateHalfNumber():UpdateQuery {
 					return new class() extends UpdateQuery {
-						public function update():array {
+						public function table():array {
 							return ["test_table"];
 						}
 
 						public function set():array {
-							return ["halfNumber"];
+							return [":halfNumber"];
 						}
 
 						public function where():array {
@@ -203,7 +203,7 @@ class DatabaseTest extends TestCase {
 			<?php
 			namespace App\Query;
 
-			use Gt\SqlBuilder\SelectBuilder;
+			use GT\SqlBuilder\SelectBuilder;
 
 			class UserQuery {
 				public function getClassMarker():SelectBuilder {
@@ -234,7 +234,7 @@ class DatabaseTest extends TestCase {
 			<?php
 			namespace App\Query;
 
-			use Gt\SqlBuilder\SelectBuilder;
+			use GT\SqlBuilder\SelectBuilder;
 
 			class UserConflict {
 				public function getById():SelectBuilder {
@@ -268,7 +268,7 @@ class DatabaseTest extends TestCase {
 			<?php
 			namespace App\Query;
 
-			use Gt\SqlBuilder\SelectBuilder;
+			use GT\SqlBuilder\SelectBuilder;
 
 			class Report {
 				public function groupedParity():SelectBuilder {

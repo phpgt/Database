@@ -92,7 +92,7 @@ class DefaultSettings implements SettingsInterface {
 		return $this->connectionName;
 	}
 
-	/** @return array<string, string> */
+	/** @return array<string, string|int|array<int, bool|int>> */
 	public function getConnectionSettings():array {
 // NOTE: It's not possible to test the 'port' values returned by this method
 // because the DefaultSettings can only ever return the DEFAULT_DRIVER port

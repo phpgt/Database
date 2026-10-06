@@ -12,7 +12,7 @@ use PHPSQLParser\lexer\PHPSQLLexer;
 
 
 /**
- * @SuppressWarnings(PHPMD.ExcessiveClassComplexity)
+ * @SuppressWarnings("PHPMD.ExcessiveClassComplexity")
  */
 abstract class Query {
 	const SPECIAL_BINDINGS = [
@@ -165,7 +165,7 @@ abstract class Query {
 		return $sql;
 	}
 
-	/** @param array<string, string|array<string, string>> $data */
+	/** @param array<string, mixed> $data */
 	public function injectDynamicBindings(string $sql, array &$data):string {
 		$sql = $this->injectDynamicBindingsValueSet($sql, $data);
 		$sql = $this->injectDynamicIn($sql, $data);
@@ -173,7 +173,7 @@ abstract class Query {
 		return trim($sql);
 	}
 
-	/** @param array<string, string|array<string, string|array<string>>> $data */
+	/** @param array<string, mixed> $data */
 	private function injectDynamicBindingsValueSet(string $sql, array &$data):string {
 		$pattern = '/\(\s*:__dynamicValueSet\s\)/';
 		if(!preg_match($pattern, $sql, $matches)) {
@@ -215,7 +215,7 @@ abstract class Query {
 		return str_replace($matches[0], $replacementString, $sql);
 	}
 
-	/** @param array<string, string|array<string, string>> $data */
+	/** @param array<string, mixed> $data */
 	private function injectDynamicIn(string $sql, array &$data):string {
 		$pattern = '/\(\s*:__dynamicIn\s\)/';
 		if(!preg_match($pattern, $sql, $matches)) {
@@ -237,7 +237,7 @@ abstract class Query {
 		return str_replace($matches[0], "( $replacementString )", $sql);
 	}
 
-	/** @param array<string, string|array<string, array<string>>> $data */
+	/** @param array<string, mixed> $data */
 	private function injectDynamicOr(string $sql, array &$data):string {
 		$pattern = '/:__dynamicOr/';
 		if(!preg_match($pattern, $sql, $matches)) {

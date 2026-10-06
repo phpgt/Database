@@ -10,7 +10,7 @@ require __DIR__ . "/bootstrap.php";
 
 try {
 	$classCode = <<<PHP
-use Gt\SqlBuilder\SelectBuilder;
+use GT\SqlBuilder\SelectBuilder;
 
 class Report {
 	public function categoryTotals():SelectBuilder {
