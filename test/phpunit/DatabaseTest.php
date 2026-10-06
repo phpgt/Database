@@ -45,7 +45,7 @@ class DatabaseTest extends TestCase {
 		static::assertInstanceOf(Database::class, $db);
 	}
 
-	/** @dataProvider \GT\Database\Test\Helper\Helper::queryCollectionPathExistsProvider */
+	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryCollectionPathExistsProvider")]
 	public function testQueryCollectionPathExists(string $name, string $path) {
 		$basePath = dirname($path);
 		$settings = new Settings(
@@ -59,8 +59,8 @@ class DatabaseTest extends TestCase {
 		static::assertInstanceOf(QueryCollection::class, $queryCollection);
 	}
 
-	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathNotExistsProvider */
-	public function testQueryCollectionPathNotExists(string $name, string $path) {
+	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathNotExistsProvider")]
+	public function testQueryCollectionPathNotExists(string $name, string $path, string $queryBase) {
 		$basePath = dirname($path);
 
 		$settings = new Settings(
@@ -74,7 +74,7 @@ class DatabaseTest extends TestCase {
 		$db->queryCollection($name);
 	}
 
-	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathNestedProvider */
+	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathNestedProvider")]
 	public function testQueryCollectionDots(
 		array $nameParts,
 		string $path,
@@ -93,7 +93,8 @@ class DatabaseTest extends TestCase {
 		self::assertInstanceOf(QueryCollection::class, $queryCollection);
 	}
 
-	/** @dataProvider \GT\Database\Test\Helper\Helper::queryCollectionPathNotExistsProvider() */
+	/* */
+	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryCollectionPathNotExistsProvider")]
 	public function testQueryCollectionPhp(
 		string $name,
 		string $path,
