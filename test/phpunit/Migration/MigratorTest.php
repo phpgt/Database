@@ -64,7 +64,7 @@ class MigratorTest extends TestCase {
 		self::assertEquals(0, $migrator->getMigrationCount());
 	}
 
-	/** @dataProvider dataMigrationFileList */
+	#[\PHPUnit\Framework\Attributes\DataProvider("dataMigrationFileList")]
 	public function testGetMigrationFileList(array $fileList) {
 		$path = $this->getMigrationDirectory();
 		$this->createFiles($fileList, $path);
@@ -85,7 +85,7 @@ class MigratorTest extends TestCase {
 		$migrator->getMigrationFileList();
 	}
 
-	/** @dataProvider dataMigrationFileList */
+	#[\PHPUnit\Framework\Attributes\DataProvider("dataMigrationFileList")]
 	public function testCheckFileListOrder(array $fileList) {
 		$path = $this->getMigrationDirectory();
 		$this->createFiles($fileList, $path);
@@ -106,7 +106,7 @@ class MigratorTest extends TestCase {
 		);
 	}
 
-	/** @dataProvider dataMigrationFileListMissing */
+	#[\PHPUnit\Framework\Attributes\DataProvider("dataMigrationFileListMissing")]
 	public function testCheckFileListOrderMissing(array $fileList) {
 		$path = self::getMigrationDirectory();
 		$this->createFiles($fileList, $path);
@@ -119,7 +119,7 @@ class MigratorTest extends TestCase {
 		$migrator->checkFileListOrder($actualFileList);
 	}
 
-	/** @dataProvider dataMigrationFileListDuplicate */
+	#[\PHPUnit\Framework\Attributes\DataProvider("dataMigrationFileListDuplicate")]
 	public function testCheckFileListOrderDuplicate(array $fileList) {
 		$path = $this->getMigrationDirectory();
 		$this->createFiles($fileList, $path);
@@ -176,7 +176,7 @@ class MigratorTest extends TestCase {
 		$migrator->checkFileListOrder($actualFileList);
 	}
 
-	/** @dataProvider dataMigrationFileList */
+	#[\PHPUnit\Framework\Attributes\DataProvider("dataMigrationFileList")]
 	public function testCheckIntegrityGood(array $fileList) {
 		$path = $this->getMigrationDirectory();
 
@@ -198,7 +198,7 @@ class MigratorTest extends TestCase {
 		);
 	}
 
-	/** @dataProvider dataMigrationFileList */
+	#[\PHPUnit\Framework\Attributes\DataProvider("dataMigrationFileList")]
 	public function testCheckIntegrityBad(array $fileList) {
 		$path = $this->getMigrationDirectory();
 
@@ -239,7 +239,7 @@ class MigratorTest extends TestCase {
 		self::assertEquals(0, $migrator->getMigrationCount());
 	}
 
-	/** @dataProvider dataMigrationFileList */
+	#[\PHPUnit\Framework\Attributes\DataProvider("dataMigrationFileList")]
 	public function testMigrationCountNotZeroAfterMigration(array $fileList) {
 		$path = $this->getMigrationDirectory();
 
@@ -261,7 +261,7 @@ class MigratorTest extends TestCase {
 		);
 	}
 
-	/** @dataProvider dataMigrationFileList */
+	#[\PHPUnit\Framework\Attributes\DataProvider("dataMigrationFileList")]
 	public function testMigrationCountReturnsZeroOnException(array $fileList) {
 		$path = $this->getMigrationDirectory();
 
@@ -271,9 +271,7 @@ class MigratorTest extends TestCase {
 		self::assertEquals(0, $migrator->getMigrationCount());
 	}
 
-	/**
-	 * @dataProvider dataMigrationFileList
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider("dataMigrationFileList")]
 	public function testMigrationFileNameFormat(array $fileList) {
 		$path = $this->getMigrationDirectory();
 
@@ -300,9 +298,7 @@ class MigratorTest extends TestCase {
 		$migrator->checkFileListOrder($absoluteFileList);
 	}
 
-	/**
-	 * @dataProvider dataMigrationFileList
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider("dataMigrationFileList")]
 	public function testForcedMigration(array $fileList) {
 		$path = $this->getMigrationDirectory();
 
@@ -325,7 +321,7 @@ class MigratorTest extends TestCase {
 		self::assertNull($exception,"Exception should not be thrown");
 	}
 
-	/** @dataProvider dataMigrationFileList */
+	#[\PHPUnit\Framework\Attributes\DataProvider("dataMigrationFileList")]
 	public function testHashMismatchAfterEditingFirstFile(array $fileList) {
 		$path = $this->getMigrationDirectory();
 		$this->createMigrationFiles($fileList, $path);
@@ -377,8 +373,8 @@ class MigratorTest extends TestCase {
 	 * none of the files in fileList are migrated yet, we should only see
 	 * 1 migration take place.
 	 *
-	 * @dataProvider dataMigrationFileList
 	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider("dataMigrationFileList")]
 	public function testResetMigration(array $fileList) {
 		$path = $this->getMigrationDirectory();
 		$this->createMigrationFiles($fileList, $path);
@@ -418,9 +414,7 @@ class MigratorTest extends TestCase {
 		self::assertSame(1, $migrationsExecuted);
 	}
 
-	/**
-	 * @dataProvider dataMigrationFileList
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider("dataMigrationFileList")]
 	public function testPerformMigrationGood(array $fileList):void {
 		$path = $this->getMigrationDirectory();
 
@@ -456,7 +450,7 @@ class MigratorTest extends TestCase {
 		);
 	}
 
-	/** @dataProvider dataMigrationFileList */
+	#[\PHPUnit\Framework\Attributes\DataProvider("dataMigrationFileList")]
 	public function testPerformMigrationBad(array $fileList) {
 		$path = $this->getMigrationDirectory();
 		$this->createMigrationFiles($fileList, $path);
@@ -479,7 +473,7 @@ class MigratorTest extends TestCase {
 		$migrator->performMigration($absoluteFileList);
 	}
 
-	/** @dataProvider dataMigrationFileList */
+	#[\PHPUnit\Framework\Attributes\DataProvider("dataMigrationFileList")]
 	public function testPerformMigrationAlreadyCompleted(array $fileList) {
 		$path = $this->getMigrationDirectory();
 		$this->createMigrationFiles($fileList, $path);
@@ -512,9 +506,7 @@ class MigratorTest extends TestCase {
 
 	}
 
-	/**
-	 * @dataProvider dataMigrationFileList
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProvider("dataMigrationFileList")]
 	public function testNonSqlExtensions(array $fileList) {
 		$path = $this->getMigrationDirectory();
 		$this->createMigrationFiles($fileList, $path);
@@ -747,7 +739,7 @@ class MigratorTest extends TestCase {
 		self::assertSame("_migration", $method->invoke($migrator));
 	}
 
-	/** @dataProvider dataMigrationFileList */
+	#[\PHPUnit\Framework\Attributes\DataProvider("dataMigrationFileList")]
 	public function testMigrationThrowsExceptionWhenNoMigrationTable(array $fileList) {
 		$path = $this->getMigrationDirectory();
 
@@ -776,7 +768,7 @@ class MigratorTest extends TestCase {
 		self::assertEmpty($output);
 	}
 
-	/** @dataProvider dataMigrationFileList */
+	#[\PHPUnit\Framework\Attributes\DataProvider("dataMigrationFileList")]
 	public function testMigrationNoOutput(array $fileList) {
 		$path = $this->getMigrationDirectory();
 		$this->createMigrationFiles($fileList, $path);
@@ -800,7 +792,7 @@ class MigratorTest extends TestCase {
 		self::assertEmpty($output);
 	}
 
-	/** @dataProvider dataMigrationFileList */
+	#[\PHPUnit\Framework\Attributes\DataProvider("dataMigrationFileList")]
 	public function testMigrationOutputToStream(array $fileList) {
 		$path = $this->getMigrationDirectory();
 		$this->createMigrationFiles($fileList, $path);
@@ -828,7 +820,7 @@ class MigratorTest extends TestCase {
 		self::assertStringContainsString("$expectedCount migrations were completed successfully.", $output);
 	}
 
-	/** @dataProvider dataMigrationFileList */
+	#[\PHPUnit\Framework\Attributes\DataProvider("dataMigrationFileList")]
 	public function testMigrationErrorOutputToStream(array $fileList) {
 		$path = $this->getMigrationDirectory();
 		$this->createMigrationFiles($fileList, $path);
@@ -1037,7 +1029,7 @@ class MigratorTest extends TestCase {
 	/**
 	 * New tests for migrating from a specific file number.
 	 */
-	/** @dataProvider dataMigrationFileList */
+	#[\PHPUnit\Framework\Attributes\DataProvider("dataMigrationFileList")]
 	public function testPerformMigrationFromSpecificNumber(array $fileList) {
 		$path = $this->getMigrationDirectory();
 		$this->createMigrationFiles($fileList, $path);
@@ -1078,7 +1070,7 @@ class MigratorTest extends TestCase {
 		self::assertSame($expected, $migrator->getMigrationCount());
 	}
 
-	/** @dataProvider dataMigrationFileListMissing */
+	#[\PHPUnit\Framework\Attributes\DataProvider("dataMigrationFileListMissing")]
 	public function testCheckFileListOrderThrowsOnGapsWhenMigratingFromSpecificNumber(array $fileList) {
 		$path = $this->getMigrationDirectory();
 		$this->createFiles($fileList, $path);
