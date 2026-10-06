@@ -14,7 +14,7 @@ use PDOStatement;
  */
 class ResultSet implements Iterator, Countable {
 	protected ?Row $currentRow;
-	protected int $rowIndex;
+	protected ?int $rowIndex = null;
 	protected int $iteratorIndex;
 
 	public function __construct(
@@ -114,7 +114,7 @@ class ResultSet implements Iterator, Countable {
 	public function rewind():void {
 		$this->statement->execute();
 		$this->currentRow = null;
-		unset($this->rowIndex);
+		$this->rowIndex = null;
 		$this->iteratorIndex = 0;
 	}
 

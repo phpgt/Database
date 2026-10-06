@@ -2,7 +2,7 @@
 namespace GT\Database;
 
 /**
- * @SuppressWarnings(PHPMD.ExcessiveClassComplexity)
+ * @SuppressWarnings("PHPMD.ExcessiveClassComplexity")
  */
 class PlaceholderValidator {
 	/** @param array<string, mixed>|array<mixed> $bindings */

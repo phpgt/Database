@@ -3,6 +3,7 @@ namespace GT\Database\Migration;
 
 use GT\Database\Connection\Settings;
 use GT\Database\Database;
+use LogicException;
 use SplFileInfo;
 use SplFileObject;
 
@@ -15,7 +16,7 @@ abstract class AbstractMigrator {
 	protected ?SplFileObject $streamOut = null;
 
 	protected string $driver;
-	protected Database $dbClient;
+	protected ?Database $dbClient;
 	protected string $path;
 	protected string $tableName;
 	protected Settings $settings;
@@ -37,6 +38,10 @@ abstract class AbstractMigrator {
 // @codeCoverageIgnoreEnd
 
 		$this->dbClient = new Database($settings);
+	}
+
+	protected function getDatabase():Database {
+		return $this->dbClient ?? throw new LogicException("Migration database is disconnected");
 	}
 
 	abstract protected function getDefaultTableName():string;
@@ -104,7 +109,7 @@ abstract class AbstractMigrator {
 	protected function executeSqlFile(string $file):string {
 		$md5 = md5_file($file);
 		foreach($this->splitSqlFile($file) as $sql) {
-			$this->dbClient->executeSql($sql);
+			$this->getDatabase()->executeSql($sql);
 		}
 
 		return $md5;
@@ -123,7 +128,7 @@ abstract class AbstractMigrator {
 	protected function tableHasColumn(string $columnName):bool {
 		switch($this->driver) {
 		case Settings::DRIVER_SQLITE:
-			$result = $this->dbClient->executeSql(
+			$result = $this->getDatabase()->executeSql(
 				"PRAGMA table_info(`{$this->tableName}`)"
 			);
 			foreach($result->fetchAll() as $row) {
@@ -135,7 +140,7 @@ abstract class AbstractMigrator {
 
 			default:
 // @codeCoverageIgnoreStart
-				$result = $this->dbClient->executeSql(
+				$result = $this->getDatabase()->executeSql(
 					"show columns from `{$this->tableName}` like ?",
 					[$columnName]
 				);
@@ -152,7 +157,7 @@ abstract class AbstractMigrator {
 			return;
 		}
 
-		$this->dbClient->executeSql(
+		$this->getDatabase()->executeSql(
 			"alter table `{$this->tableName}` add `$columnName` $definition"
 		);
 	}

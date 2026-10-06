@@ -7,7 +7,7 @@ use GT\Database\Connection\Settings;
 use GT\Database\DatabaseException;
 
 /**
- * @SuppressWarnings(PHPMD.ExcessiveClassComplexity)
+ * @SuppressWarnings("PHPMD.ExcessiveClassComplexity")
  */
 class Migrator extends AbstractMigrator {
 	const COLUMN_QUERY_NUMBER = "queryNumber";
@@ -36,7 +36,7 @@ class Migrator extends AbstractMigrator {
 	public function checkMigrationTableExists():bool {
 		switch($this->driver) {
 		case Settings::DRIVER_SQLITE:
-			$result = $this->dbClient->executeSql(
+			$result = $this->getDatabase()->executeSql(
 				"select name from sqlite_master "
 				. "where type=? "
 				. "and name like ?", [
@@ -48,7 +48,7 @@ class Migrator extends AbstractMigrator {
 
 		default:
 // @codeCoverageIgnoreStart
-			$result = $this->dbClient->executeSql(
+			$result = $this->getDatabase()->executeSql(
 				"show tables like ?",
 				[
 					$this->tableName
@@ -62,7 +62,7 @@ class Migrator extends AbstractMigrator {
 	}
 
 	public function createMigrationTable():void {
-		$this->dbClient->executeSql(implode("\n", [
+		$this->getDatabase()->executeSql(implode("\n", [
 			"create table if not exists `{$this->tableName}` (",
 			"`" . self::COLUMN_QUERY_NUMBER . "` int primary key,",
 			"`" . self::COLUMN_QUERY_HASH . "` varchar(32) null,",
@@ -74,7 +74,7 @@ class Migrator extends AbstractMigrator {
 
 	public function getMigrationCount():int {
 		try {
-			$result = $this->dbClient->executeSql("select `"
+			$result = $this->getDatabase()->executeSql("select `"
 				. self::COLUMN_QUERY_NUMBER
 				. "` from `{$this->tableName}` "
 				. "order by `" . self::COLUMN_QUERY_NUMBER . "` desc"
@@ -191,7 +191,7 @@ class Migrator extends AbstractMigrator {
 					continue;
 				}
 
-				$this->dbClient->executeSql($sql);
+				$this->getDatabase()->executeSql($sql);
 				$this->recordMigrationProgress($fileNumber, $md5, $statementNumber);
 			}
 
@@ -219,10 +219,10 @@ class Migrator extends AbstractMigrator {
 		$schema = $this->schema;
 
 		try {
-			$this->dbClient->executeSql(
+			$this->getDatabase()->executeSql(
 				"create schema if not exists `$schema` default character set {$this->charset} default collate {$this->collate}"
 			);
-			$this->dbClient->executeSql(
+			$this->getDatabase()->executeSql(
 				"use `$schema`"
 			);
 		}
@@ -249,7 +249,7 @@ class Migrator extends AbstractMigrator {
 		$existingState = $this->getMigrationProgress($number);
 
 		if($existingState) {
-			$this->dbClient->executeSql(implode("\n", [
+			$this->getDatabase()->executeSql(implode("\n", [
 				"update `{$this->tableName}`",
 				"set `" . self::COLUMN_QUERY_HASH . "` = ?,",
 				"`" . self::COLUMN_LAST_STATEMENT . "` = ?,",
@@ -259,7 +259,7 @@ class Migrator extends AbstractMigrator {
 			return;
 		}
 
-		$this->dbClient->executeSql(implode("\n", [
+		$this->getDatabase()->executeSql(implode("\n", [
 			"insert into `{$this->tableName}` (",
 			"`" . self::COLUMN_QUERY_NUMBER . "`, ",
 			"`" . self::COLUMN_QUERY_HASH . "`, ",
@@ -293,7 +293,7 @@ class Migrator extends AbstractMigrator {
 			$selectList .= ", null as `" . self::COLUMN_LAST_STATEMENT . "`";
 		}
 
-		$result = $this->dbClient->executeSql(implode("\n", [
+		$result = $this->getDatabase()->executeSql(implode("\n", [
 			"select $selectList",
 			"from `{$this->tableName}`",
 			"where `" . self::COLUMN_QUERY_NUMBER . "` = ?",
@@ -331,7 +331,7 @@ class Migrator extends AbstractMigrator {
 	 */
 	public function deleteAndRecreateSchema():void {
 		if($this->driver === Settings::DRIVER_SQLITE) {
-			unset($this->dbClient);
+			$this->dbClient = null;
 
 			if($this->schema !== Settings::SCHEMA_IN_MEMORY
 			&& is_file($this->schema)) {
@@ -343,10 +343,10 @@ class Migrator extends AbstractMigrator {
 		}
 
 		try {
-			$this->dbClient->executeSql(
+			$this->getDatabase()->executeSql(
 				"drop schema if exists `{$this->schema}`"
 			);
-			$this->dbClient->executeSql(
+			$this->getDatabase()->executeSql(
 				"create schema if not exists "
 				. $this->schema
 				. " default character set "
