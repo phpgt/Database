@@ -10,7 +10,7 @@ use GT\Database\Query\SqlQuery;
 use PHPUnit\Framework\TestCase;
 
 class QueryTest extends TestCase {
-	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathNotExistsProvider */
+	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathNotExistsProvider")]
 	public function testConstructionQueryPathNotExists(
 		string $queryName,
 		string $queryCollectionPath,
@@ -20,9 +20,7 @@ class QueryTest extends TestCase {
 		new SqlQuery($queryPath, new Driver(new DefaultSettings()));
 	}
 
-	/**
-	 * @dataProvider \GT\Database\Test\Helper\Helper::queryPathExistsProvider
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathExistsProvider")]
 	public function testConstructionQueryPathExists(
 		string $queryName,
 		string $queryCollectionPath,
@@ -36,7 +34,7 @@ class QueryTest extends TestCase {
 		}
 	}
 
-	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathExistsProvider */
+	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathExistsProvider")]
 	public function testExecDoesNotConnect(
 		string $queryName,
 		string $queryCollectionPath,

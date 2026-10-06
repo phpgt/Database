@@ -178,7 +178,7 @@ class ResultSetTest extends TestCase {
 	private function getStatementMock(bool $withMetadata = true):PDOStatement {
 		$statement = $this->createMock(PDOStatement::class);
 		$statement->method("fetch")
-			->will(self::returnCallback([$this, "getNextFakeData"]));
+			->willReturnCallback([$this, "getNextFakeData"]);
 		$statement->method("execute")
 			->willReturnCallback([$this, "rewindFakeData"]);
 		if($withMetadata) {

@@ -10,8 +10,8 @@ require __DIR__ . "/bootstrap.php";
 
 try {
 	$classCode = <<<PHP
-use Gt\SqlBuilder\InsertBuilder;
-use Gt\SqlBuilder\SelectBuilder;
+use GT\SqlBuilder\InsertBuilder;
+use GT\SqlBuilder\SelectBuilder;
 
 class Product {
 	public function insert():InsertBuilder {

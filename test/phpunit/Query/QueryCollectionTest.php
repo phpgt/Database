@@ -223,7 +223,7 @@ class QueryCollectionTest extends TestCase {
 		<?php
 		namespace App\Query;
 
-		use Gt\SqlBuilder\SelectBuilder;
+		use GT\SqlBuilder\SelectBuilder;
 
 		class BuilderUser {
 			public function getById():SelectBuilder {
@@ -271,7 +271,7 @@ class QueryCollectionTest extends TestCase {
 		<?php
 		namespace App\Query;
 
-		use Gt\SqlBuilder\SelectBuilder;
+		use GT\SqlBuilder\SelectBuilder;
 
 		class OverrideUser {
 			public function getSource():SelectBuilder {

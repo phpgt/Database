@@ -1,11 +1,13 @@
 <?php
 namespace GT\Database\Cli;
 
-use Gt\Cli\Argument\ArgumentValueList;
-use Gt\Cli\Command\Command;
-use Gt\Cli\Parameter\Parameter;
-use Gt\Config\ConfigFactory;
+use GT\Cli\Argument\ArgumentValueList;
+use GT\Cli\Command\Command;
+use GT\Cli\Parameter\Parameter;
+use GT\Config\Config;
+use GT\Config\ConfigFactory;
 use GT\Database\Connection\Settings;
+use GT\Database\Migration\DevMigrator;
 use GT\Database\Migration\MigrationIntegrityException;
 use GT\Database\Migration\Migrator;
 use GT\Database\StatementExecutionException;
@@ -19,6 +21,7 @@ class ExecuteCommand extends Command {
 
 		$settings = $this->buildSettingsFromConfig($config, $repoBasePath, $arguments);
 		[$migrationPath, $migrationTable] = $this->getMigrationLocation($config, $repoBasePath, $arguments);
+		[$devMigrationPath, $devMigrationTable] = $this->getDevMigrationLocation($config, $repoBasePath, $arguments);
 
 		$migrator = new Migrator($settings, $migrationPath, $migrationTable);
 		$migrator->setOutput(
@@ -32,12 +35,33 @@ class ExecuteCommand extends Command {
 
 		$migrator->selectSchema();
 		$migrator->createMigrationTable();
-		$migrationCount = $migrator->getMigrationCount();
 		$migrationFileList = $migrator->getMigrationFileList();
+		$migrationCount = $migrator->getContiguousCompletedMigrationCount($migrationFileList);
 
 		$runFrom = $this->calculateResetNumber($arguments, $migrationFileList, $migrator, $migrationCount);
 
-		$this->executeMigrations($migrator, $migrationFileList, $runFrom);
+		if(!$this->executeMigrations($migrator, $migrationFileList, $runFrom)) {
+			return 1;
+		}
+
+		if($this->isDevMerge($arguments)) {
+			return $this->mergeDevMigrations(
+				$settings,
+				$migrator,
+				$migrationPath,
+				$devMigrationPath,
+				$devMigrationTable,
+			) ? 0 : 1;
+		}
+
+		if($this->isDev($arguments)) {
+			return $this->executeDevMigrations(
+				$settings,
+				$devMigrationPath,
+				$devMigrationTable,
+			) ? 0 : 1;
+		}
+
 		return 0;
 	}
 
@@ -46,9 +70,17 @@ class ExecuteCommand extends Command {
 		return $arguments?->contains("force") ?? false;
 	}
 
+	private function isDev(?ArgumentValueList $arguments):bool {
+		return $arguments?->contains("dev") ?? false;
+	}
+
+	private function isDevMerge(?ArgumentValueList $arguments):bool {
+		return $arguments?->contains("dev-merge") ?? false;
+	}
+
 	/** Build Settings from config for the current repository. */
 	protected function buildSettingsFromConfig(
-		\Gt\Config\Config $config,
+		Config $config,
 		string $repoBasePath,
 		?ArgumentValueList $arguments = null
 	): Settings {
@@ -111,7 +143,7 @@ class ExecuteCommand extends Command {
 	 * @return list<string>
 	 */
 	protected function getMigrationLocation(
-		\Gt\Config\Config $config,
+		Config $config,
 		string $repoBasePath,
 		?ArgumentValueList $arguments = null
 	): array {
@@ -128,6 +160,34 @@ class ExecuteCommand extends Command {
 		]);
 		$migrationTable = $config->get("database.migration_table") ?? "_migration";
 		return [$migrationPath, $migrationTable];
+	}
+
+	/**
+	 * Return [devMigrationPath, devMigrationTable] derived from config.
+	 *
+	 * @return list<string>
+	 */
+	protected function getDevMigrationLocation(
+		Config $config,
+		string $repoBasePath,
+		?ArgumentValueList $arguments = null
+	): array {
+		$queryPath = $this->getOverrideOrConfigValue(
+			$config,
+			$arguments,
+			"base-directory",
+			"database.query_path",
+			"query"
+		);
+		$devMigrationPath = implode(DIRECTORY_SEPARATOR, [
+			$this->resolvePath($repoBasePath, $queryPath),
+			$config->get("database.dev_migration_path") ?? implode(DIRECTORY_SEPARATOR, [
+				"_migration",
+				"dev",
+			]),
+		]);
+		$devMigrationTable = $config->get("database.dev_migration_table") ?? "_migration_dev";
+		return [$devMigrationPath, $devMigrationTable];
 	}
 
 	/**
@@ -159,10 +219,15 @@ class ExecuteCommand extends Command {
 	 *
 	 * @param list<string> $migrationFileList
 	 */
-	private function executeMigrations(Migrator $migrator, array $migrationFileList, int $runFrom): void {
+	private function executeMigrations(
+		Migrator $migrator,
+		array $migrationFileList,
+		int $runFrom,
+	):bool {
 		try {
 			$migrator->checkIntegrity($migrationFileList, $runFrom);
 			$migrator->performMigration($migrationFileList, $runFrom);
+			return true;
 		}
 		catch(MigrationIntegrityException $exception) {
 			$this->writeLine(
@@ -171,6 +236,7 @@ class ExecuteCommand extends Command {
 				. "' - this migration is recorded to have been run already, "
 				. "but the contents of the file has changed.\nFor help, see "
 				. "https://www.php.gt/database/migrations#integrity-error");
+			return false;
 		}
 		catch(StatementPreparationException|StatementExecutionException $exception) {
 			$this->writeLine(
@@ -178,6 +244,78 @@ class ExecuteCommand extends Command {
 				. $exception->getMessage()
 				. "'\nFor help, see https://www.php.gt/database/migrations#error"
 			);
+			return false;
+		}
+	}
+
+	private function executeDevMigrations(
+		Settings $settings,
+		string $devMigrationPath,
+		string $devMigrationTable
+	):bool {
+		$devMigrator = new DevMigrator(
+			$settings,
+			$devMigrationPath,
+			$devMigrationTable,
+		);
+		$devMigrator->setOutput(
+			$this->stream->getOutStream(),
+			$this->stream->getErrorStream()
+		);
+
+		$devMigrator->createMigrationTable();
+		$devMigrationFileList = $devMigrator->getMigrationFileList();
+
+		try {
+			$devMigrator->checkFileListOrder($devMigrationFileList);
+			$devMigrator->checkIntegrity($devMigrationFileList);
+			$devMigrator->performMigration($devMigrationFileList);
+			return true;
+		}
+		catch(MigrationIntegrityException $exception) {
+			$this->writeLine(
+				"There was an integrity error migrating dev file '"
+				. $exception->getMessage()
+				. "' - this dev migration is recorded to have been run already, "
+				. "but the contents of the file has changed."
+			);
+			return false;
+		}
+		catch(StatementPreparationException|StatementExecutionException $exception) {
+			$this->writeLine(
+				"There was an error executing dev migration file: "
+				. $exception->getMessage()
+				. "'"
+			);
+			return false;
+		}
+	}
+
+	private function mergeDevMigrations(
+		Settings $settings,
+		Migrator $migrator,
+		string $migrationPath,
+		string $devMigrationPath,
+		string $devMigrationTable
+	):bool {
+		$devMigrator = new DevMigrator($settings, $devMigrationPath, $devMigrationTable);
+		$devMigrator->setOutput(
+			$this->stream->getOutStream(),
+			$this->stream->getErrorStream()
+		);
+		$devMigrator->createMigrationTable();
+
+		try {
+			$devMigrator->mergeIntoMainMigrationDirectory($migrator, $migrationPath);
+			return true;
+		}
+		catch(MigrationIntegrityException $exception) {
+			$this->writeLine(
+				"There was an integrity error merging dev migration file '"
+				. $exception->getMessage()
+				. "' - ensure the dev migration has already been run and not edited since."
+			);
+			return false;
 		}
 	}
 
@@ -247,6 +385,18 @@ class ExecuteCommand extends Command {
 			),
 			new Parameter(
 				false,
+				"dev",
+				null,
+				"Run branch-local migrations from the dev migration directory"
+			),
+			new Parameter(
+				false,
+				"dev-merge",
+				null,
+				"Promote branch-local dev migrations into canonical migrations"
+			),
+			new Parameter(
+				false,
 				"force",
 				"f",
 				"Forcefully drop the current schema and run from migration 1"
@@ -281,9 +431,9 @@ class ExecuteCommand extends Command {
 	/**
 	 * @param bool|string $repoBasePath
 	 * @param string|null $defaultPath
-	 * @return \Gt\Config\Config
+	 * @return Config
 	 */
-	protected function getConfig(bool|string $repoBasePath, ?string $defaultPath):\Gt\Config\Config {
+	protected function getConfig(bool|string $repoBasePath, ?string $defaultPath):Config {
 		$config = ConfigFactory::createForProject($repoBasePath);
 
 		$default = $defaultPath
@@ -297,7 +447,7 @@ class ExecuteCommand extends Command {
 	}
 
 	protected function getOverrideOrConfigValue(
-		\Gt\Config\Config $config,
+		Config $config,
 		?ArgumentValueList $arguments,
 		string $argumentKey,
 		string $configKey,

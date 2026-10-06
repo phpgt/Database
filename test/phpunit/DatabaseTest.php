@@ -45,7 +45,7 @@ class DatabaseTest extends TestCase {
 		static::assertInstanceOf(Database::class, $db);
 	}
 
-	/** @dataProvider \GT\Database\Test\Helper\Helper::queryCollectionPathExistsProvider */
+	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryCollectionPathExistsProvider")]
 	public function testQueryCollectionPathExists(string $name, string $path) {
 		$basePath = dirname($path);
 		$settings = new Settings(
@@ -59,8 +59,8 @@ class DatabaseTest extends TestCase {
 		static::assertInstanceOf(QueryCollection::class, $queryCollection);
 	}
 
-	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathNotExistsProvider */
-	public function testQueryCollectionPathNotExists(string $name, string $path) {
+	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathNotExistsProvider")]
+	public function testQueryCollectionPathNotExists(string $name, string $path, string $queryBase) {
 		$basePath = dirname($path);
 
 		$settings = new Settings(
@@ -74,7 +74,7 @@ class DatabaseTest extends TestCase {
 		$db->queryCollection($name);
 	}
 
-	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathNestedProvider */
+	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathNestedProvider")]
 	public function testQueryCollectionDots(
 		array $nameParts,
 		string $path,
@@ -93,7 +93,8 @@ class DatabaseTest extends TestCase {
 		self::assertInstanceOf(QueryCollection::class, $queryCollection);
 	}
 
-	/** @dataProvider \GT\Database\Test\Helper\Helper::queryCollectionPathNotExistsProvider() */
+	/* */
+	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryCollectionPathNotExistsProvider")]
 	public function testQueryCollectionPhp(
 		string $name,
 		string $path,
@@ -129,9 +130,9 @@ class DatabaseTest extends TestCase {
 			<?php
 			namespace App\Query;
 
-			use Gt\SqlBuilder\DeleteBuilder;
-			use Gt\SqlBuilder\InsertBuilder;
-			use Gt\SqlBuilder\Query\UpdateQuery;
+			use GT\SqlBuilder\DeleteBuilder;
+			use GT\SqlBuilder\InsertBuilder;
+			use GT\SqlBuilder\Query\UpdateQuery;
 
 			class UserCrud {
 				public function insertUser():InsertBuilder {
@@ -143,12 +144,12 @@ class DatabaseTest extends TestCase {
 
 				public function updateHalfNumber():UpdateQuery {
 					return new class() extends UpdateQuery {
-						public function update():array {
+						public function table():array {
 							return ["test_table"];
 						}
 
 						public function set():array {
-							return ["halfNumber"];
+							return [":halfNumber"];
 						}
 
 						public function where():array {
@@ -203,7 +204,7 @@ class DatabaseTest extends TestCase {
 			<?php
 			namespace App\Query;
 
-			use Gt\SqlBuilder\SelectBuilder;
+			use GT\SqlBuilder\SelectBuilder;
 
 			class UserQuery {
 				public function getClassMarker():SelectBuilder {
@@ -234,7 +235,7 @@ class DatabaseTest extends TestCase {
 			<?php
 			namespace App\Query;
 
-			use Gt\SqlBuilder\SelectBuilder;
+			use GT\SqlBuilder\SelectBuilder;
 
 			class UserConflict {
 				public function getById():SelectBuilder {
@@ -268,7 +269,7 @@ class DatabaseTest extends TestCase {
 			<?php
 			namespace App\Query;
 
-			use Gt\SqlBuilder\SelectBuilder;
+			use GT\SqlBuilder\SelectBuilder;
 
 			class Report {
 				public function groupedParity():SelectBuilder {
@@ -315,17 +316,17 @@ class DatabaseTest extends TestCase {
 		$this->expectExceptionMessage("Too few parameters were bound - missing `name`, `number`");
 
 		$sql = <<<SQL
-		select 
+			select
 			id,
 			name,
 			number
-		from 
+			from
 			test_table
-		where 
-			id = :id 
-		and 
-			name = :name 
-		and 
+			where
+				id = :id
+			and
+				name = :name
+			and
 			number = :number
 		SQL;
 
@@ -340,17 +341,17 @@ class DatabaseTest extends TestCase {
 		$this->expectExceptionMessage("Too few parameters were bound - missing `name`");
 
 		$sql = <<<SQL
-		select 
+			select
 			id,
 			name,
 			number
-		from 
+			from
 			test_table
-		where 
-			id = :id 
-		and 
-			name = :name 
-		and 
+			where
+				id = :id
+			and
+				name = :name
+			and
 			number = :number
 		SQL;
 

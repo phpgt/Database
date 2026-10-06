@@ -7,7 +7,7 @@ use GT\Database\Result\Row;
 use PHPUnit\Framework\TestCase;
 
 class RowTest extends TestCase {
-	/** @dataProvider data_getTestRow */
+	#[\PHPUnit\Framework\Attributes\DataProvider("data_getTestRow")]
 	public function testFieldAccess(array $data) {
 		$row = new Row($data);
 
@@ -69,7 +69,7 @@ class RowTest extends TestCase {
 		);
 	}
 
-	/** @dataProvider data_getTestRow */
+	#[\PHPUnit\Framework\Attributes\DataProvider("data_getTestRow")]
 	public function testIteration(array $data) {
 		$row = new Row($data);
 
@@ -83,7 +83,7 @@ class RowTest extends TestCase {
 		}
 	}
 
-	/** @dataProvider data_getTestRow */
+	#[\PHPUnit\Framework\Attributes\DataProvider("data_getTestRow")]
 	public function testGetString(array $data) {
 		$row = new Row($data);
 		foreach($data as $key => $expected) {
@@ -93,7 +93,7 @@ class RowTest extends TestCase {
 		}
 	}
 
-	/** @dataProvider data_getTestRow */
+	#[\PHPUnit\Framework\Attributes\DataProvider("data_getTestRow")]
 	public function testGetInt(array $data) {
 		$row = new Row($data);
 		$id = $row->getInt("id");
@@ -101,7 +101,7 @@ class RowTest extends TestCase {
 		self::assertSame((int)$data["id"], $id);
 	}
 
-	/** @dataProvider data_getTestRow */
+	#[\PHPUnit\Framework\Attributes\DataProvider("data_getTestRow")]
 	public function testGetFloat(array $data) {
 		$row = new Row($data);
 		$float = $row->getFloat("exampleFloat");
@@ -109,7 +109,7 @@ class RowTest extends TestCase {
 		self::assertSame(round($data["exampleFloat"], 4), round($float, 4));
 	}
 
-	/** @dataProvider data_getTestRow */
+	#[\PHPUnit\Framework\Attributes\DataProvider("data_getTestRow")]
 	public function testGetBool(array $data) {
 		$row = new Row($data);
 		$bool = $row->getBool("exampleBool");
@@ -117,7 +117,7 @@ class RowTest extends TestCase {
 		self::assertSame((bool)$data["exampleBool"], $bool);
 	}
 
-	/** @dataProvider data_getTestRow */
+	#[\PHPUnit\Framework\Attributes\DataProvider("data_getTestRow")]
 	public function testGetDateTime(array $data) {
 		$row = new Row($data);
 		$dateTime = $row->getDateTime("exampleDateTime");

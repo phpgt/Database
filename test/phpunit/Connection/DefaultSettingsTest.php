@@ -40,7 +40,7 @@ class DefaultSettingsTest extends TestCase {
 		);
 	}
 
-	/** @dataProvider getDrivers */
+	#[\PHPUnit\Framework\Attributes\DataProvider("getDrivers")]
 	public function testDefaultPort(string $dsn, int $port) {
 // NOTE: Have to use a Settings object here as it's not possible to use anything other
 // than the default_driver otherwise
@@ -64,7 +64,7 @@ class DefaultSettingsTest extends TestCase {
 		], $settings->getConnectionSettings());
 	}
 
-	/** @dataProvider getDrivers */
+	#[\PHPUnit\Framework\Attributes\DataProvider("getDrivers")]
 	public function testGetConnectionSettings(string $dsn, int $port) {
 		$settings = new DefaultSettings();
 		$connectionSettings = $settings->getConnectionSettings();

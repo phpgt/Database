@@ -15,12 +15,11 @@ use GT\Database\Test\Helper\Helper;
 use PHPUnit\Framework\TestCase;
 
 class QueryFactoryTest extends TestCase {
-	/**
-	 * @dataProvider \GT\Database\Test\Helper\Helper::queryPathExistsProvider
-	 */
+	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathExistsProvider")]
 	public function testFindQueryFilePathExists(
 		string $queryName,
-		string $directoryOfQueries
+		string $directoryOfQueries,
+		string $queryBase,
 	) {
 		$queryFactory = new QueryFactory(
 			$directoryOfQueries,
@@ -30,10 +29,11 @@ class QueryFactoryTest extends TestCase {
 		static::assertFileExists($queryFilePath);
 	}
 
-	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathNotExistsProvider */
+	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathNotExistsProvider")]
 	public function testFindQueryFilePathNotExists(
 		string $queryName,
-		string $directoryOfQueries
+		string $directoryOfQueries,
+		string $queryBase,
 	) {
 		$queryFactory = new QueryFactory(
 			$directoryOfQueries,
@@ -44,10 +44,11 @@ class QueryFactoryTest extends TestCase {
 		$queryFactory->findQueryFilePath($queryName);
 	}
 
-	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathExtensionNotValidProvider */
+	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathExtensionNotValidProvider")]
 	public function testFindQueryFilePathWithInvalidExtension(
 		string $queryName,
-		string $directoryOfQueries
+		string $directoryOfQueries,
+		string $queryBase,
 	) {
 		$queryFactory = new QueryFactory(
 			$directoryOfQueries,
@@ -58,10 +59,11 @@ class QueryFactoryTest extends TestCase {
 		$queryFactory->findQueryFilePath($queryName);
 	}
 
-	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathExistsProvider */
+	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathExistsProvider")]
 	public function testQueryCreated(
 		string $queryName,
-		string $directoryOfQueries
+		string $directoryOfQueries,
+		string $queryBase,
 	) {
 		$queryFactory = new QueryFactory(
 			$directoryOfQueries,
@@ -97,10 +99,11 @@ class QueryFactoryTest extends TestCase {
 		}
 	}
 
-	/** @dataProvider \GT\Database\Test\Helper\Helper::queryPathNotExistsProvider */
+	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathNotExistsProvider")]
 	public function testCreatePhp(
 		string $queryName,
 		string $directoryOfQueries,
+		string $queryBase,
 	) {
 		$classPath = "$directoryOfQueries.php";
 		if(!is_dir($directoryOfQueries)) {
@@ -401,5 +404,68 @@ class QueryFactoryTest extends TestCase {
 		finally {
 			Helper::deleteDir($basePath);
 		}
+	}
+
+	public function testFindQueryFilePathCachesResolvedPaths():void {
+		$basePath = Helper::getTmpDir();
+		$queryDirectory = implode(DIRECTORY_SEPARATOR, [
+			$basePath,
+			"query",
+		]);
+		mkdir($queryDirectory, 0775, true);
+		file_put_contents("$queryDirectory/report.sql", "select 1");
+
+		try {
+			$sut = $this->createCountingQueryFactory($queryDirectory);
+
+			$firstPath = $sut->findQueryFilePath("report");
+			$secondPath = $sut->findQueryFilePath("report");
+
+			self::assertSame($firstPath, $secondPath);
+			self::assertSame(1, $sut->directoryScanCount);
+		}
+		finally {
+			Helper::deleteDir($basePath);
+		}
+	}
+
+	public function testCreateCachesResolvedPathsBetweenCalls():void {
+		$basePath = Helper::getTmpDir();
+		$queryDirectory = implode(DIRECTORY_SEPARATOR, [
+			$basePath,
+			"query",
+		]);
+		mkdir($queryDirectory, 0775, true);
+		file_put_contents("$queryDirectory/report.sql", "select 1");
+
+		try {
+			$sut = $this->createCountingQueryFactory($queryDirectory);
+
+			$firstQuery = $sut->create("report");
+			$secondQuery = $sut->create("report");
+
+			self::assertSame($firstQuery->getFilePath(), $secondQuery->getFilePath());
+			self::assertSame(1, $sut->directoryScanCount);
+		}
+		finally {
+			Helper::deleteDir($basePath);
+		}
+	}
+
+	private function createCountingQueryFactory(string $queryDirectory):QueryFactory {
+		return new class(
+			$queryDirectory,
+			new Driver(new DefaultSettings())
+		) extends QueryFactory {
+			public int $directoryScanCount = 0;
+
+			protected function findQueryFilePathInDirectory(
+				string $directory,
+				string $name,
+			):?string {
+				$this->directoryScanCount++;
+				return parent::findQueryFilePathInDirectory($directory, $name);
+			}
+		};
 	}
 }
