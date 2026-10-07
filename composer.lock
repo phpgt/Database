@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "93bc42531787d8ef4154e3511c04bd99",
+    "content-hash": "0fff117bc14dddc04a32acc373b8f3ed",
     "packages": [
         {
             "name": "greenlion/php-sql-parser",
-            "version": "v4.7.0",
+            "version": "v5.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/greenlion/PHP-SQL-Parser.git",
-                "reference": "0cd49149efc5868db9c32d1a09558ea516892586"
+                "reference": "7a4701b71f7786e8518a9412f3c552ae4550d314"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/greenlion/PHP-SQL-Parser/zipball/0cd49149efc5868db9c32d1a09558ea516892586",
-                "reference": "0cd49149efc5868db9c32d1a09558ea516892586",
+                "url": "https://api.github.com/repos/greenlion/PHP-SQL-Parser/zipball/7a4701b71f7786e8518a9412f3c552ae4550d314",
+                "reference": "7a4701b71f7786e8518a9412f3c552ae4550d314",
                 "shasum": ""
             },
             "require": {
@@ -26,7 +26,7 @@
             "require-dev": {
                 "analog/analog": "^1.0.6",
                 "phpunit/phpunit": "^9.5.13",
-                "squizlabs/php_codesniffer": "^2.8.1"
+                "squizlabs/php_codesniffer": "^3.13.6"
             },
             "type": "library",
             "autoload": {
@@ -64,7 +64,7 @@
                 "issues": "https://github.com/greenlion/PHP-SQL-Parser/issues",
                 "source": "https://github.com/greenlion/PHP-SQL-Parser"
             },
-            "time": "2024-12-02T12:14:07+00:00"
+            "time": "2026-09-19T15:22:58+00:00"
         },
         {
             "name": "magicalex/write-ini-file",
