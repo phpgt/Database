@@ -3,6 +3,7 @@ namespace GT\Database\Test\Query;
 
 use GT\Database\Connection\Settings;
 use GT\Database\Connection\Driver;
+use GT\Database\Query\QueryCollection;
 use GT\Database\Query\QueryCollectionClass;
 use GT\Database\Query\QueryCollectionDirectory;
 use GT\Database\Query\QueryCollectionFactory;
@@ -39,12 +40,10 @@ class QueryCollectionFactoryTest extends TestCase {
 		);
 	}
 
-	public function testDirectoryNotExists() {
+	public function testMissingCollectionThrowsOnlyWhenQueryIsCalled():void {
 		$queryCollectionName = "exampleTest";
 		$baseDir = Helper::getTmpDir();
 		mkdir($baseDir, 0775, true);
-
-		chdir($baseDir);
 
 		$driver = new Driver(new Settings(
 			$baseDir,
@@ -53,8 +52,17 @@ class QueryCollectionFactoryTest extends TestCase {
 		));
 		$queryCollectionFactory = new QueryCollectionFactory($driver);
 
-		self::expectException(QueryCollectionNotFoundException::class);
-		$queryCollectionFactory->create($queryCollectionName);
+		try {
+			$queryCollection = $queryCollectionFactory->create($queryCollectionName);
+			self::assertInstanceOf(QueryCollection::class, $queryCollection);
+
+			self::expectException(QueryCollectionNotFoundException::class);
+			self::expectExceptionMessage($queryCollectionName);
+			$queryCollection->query("selectExample");
+		}
+		finally {
+			Helper::deleteDir($baseDir);
+		}
 	}
 
 	public function testClassOverridesDirectoryCaseInsensitively():void {
