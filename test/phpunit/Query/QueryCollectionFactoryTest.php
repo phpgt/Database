@@ -90,6 +90,61 @@ class QueryCollectionFactoryTest extends TestCase {
 		}
 	}
 
+	public function testMissingCollectionCanBeCreatedBeforeQueryExecution():void {
+		$baseDir = Helper::getTmpDir();
+		mkdir($baseDir, 0775, true);
+		$driver = new Driver(new Settings(
+			$baseDir,
+			Settings::DRIVER_SQLITE,
+			Settings::SCHEMA_IN_MEMORY,
+		));
+		$factory = new QueryCollectionFactory($driver);
+
+		try {
+			$collection = $factory->create("module.example");
+			self::assertSame($collection, $factory->create("module.example"));
+			mkdir("$baseDir/Module/Example", 0775, true);
+			file_put_contents("$baseDir/Module/Example/selectValue.sql", "SELECT 42 AS value");
+
+			self::assertSame(42, $collection->fetchInt("selectValue"));
+			self::assertSame(42, $collection->selectValue()->current()->getInt("value"));
+			self::assertSame("$baseDir/Module/Example", $collection->getDirectoryPath());
+		}
+		finally {
+			Helper::deleteDir($baseDir);
+		}
+	}
+
+	public function testMissingPhpCollectionPreservesCustomNamespace():void {
+		$baseDir = Helper::getTmpDir();
+		mkdir($baseDir, 0775, true);
+		$driver = new Driver(new Settings(
+			$baseDir,
+			Settings::DRIVER_SQLITE,
+			Settings::SCHEMA_IN_MEMORY,
+		));
+		$factory = new QueryCollectionFactory($driver);
+
+		try {
+			$collection = $factory->create("DeferredExample");
+			$collection->setAppNamespace("DeferredTest\\Query");
+			file_put_contents("$baseDir/DeferredExample.php", <<<'PHP'
+			<?php
+			namespace DeferredTest\Query;
+			class DeferredExample {
+				public function selectValue():string {
+					return "SELECT 42 AS value";
+				}
+			}
+			PHP);
+
+			self::assertSame(42, $collection->fetchInt("selectValue"));
+		}
+		finally {
+			Helper::deleteDir($baseDir);
+		}
+	}
+
 	public function testDirectoryUsedWhenNoClassExistsCaseInsensitively():void {
 		$baseDir = Helper::getTmpDir();
 		$queryBase = "$baseDir/query";

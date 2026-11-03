@@ -70,8 +70,10 @@ class DatabaseTest extends TestCase {
 		);
 		$db = new Database($settings);
 
+		$collection = $db->queryCollection($name);
+		self::assertInstanceOf(QueryCollection::class, $collection);
 		self::expectException(QueryCollectionNotFoundException::class);
-		$db->queryCollection($name);
+		$collection->query("selectExample");
 	}
 
 	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathNestedProvider")]
