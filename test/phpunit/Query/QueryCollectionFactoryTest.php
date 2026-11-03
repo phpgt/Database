@@ -3,6 +3,7 @@ namespace GT\Database\Test\Query;
 
 use GT\Database\Connection\Settings;
 use GT\Database\Connection\Driver;
+use GT\Database\Query\QueryCollection;
 use GT\Database\Query\QueryCollectionClass;
 use GT\Database\Query\QueryCollectionDirectory;
 use GT\Database\Query\QueryCollectionFactory;
@@ -39,12 +40,10 @@ class QueryCollectionFactoryTest extends TestCase {
 		);
 	}
 
-	public function testDirectoryNotExists() {
+	public function testMissingCollectionThrowsOnlyWhenQueryIsCalled():void {
 		$queryCollectionName = "exampleTest";
 		$baseDir = Helper::getTmpDir();
 		mkdir($baseDir, 0775, true);
-
-		chdir($baseDir);
 
 		$driver = new Driver(new Settings(
 			$baseDir,
@@ -53,8 +52,17 @@ class QueryCollectionFactoryTest extends TestCase {
 		));
 		$queryCollectionFactory = new QueryCollectionFactory($driver);
 
-		self::expectException(QueryCollectionNotFoundException::class);
-		$queryCollectionFactory->create($queryCollectionName);
+		try {
+			$queryCollection = $queryCollectionFactory->create($queryCollectionName);
+			self::assertInstanceOf(QueryCollection::class, $queryCollection);
+
+			self::expectException(QueryCollectionNotFoundException::class);
+			self::expectExceptionMessage($queryCollectionName);
+			$queryCollection->query("selectExample");
+		}
+		finally {
+			Helper::deleteDir($baseDir);
+		}
 	}
 
 	public function testClassOverridesDirectoryCaseInsensitively():void {
@@ -76,6 +84,61 @@ class QueryCollectionFactoryTest extends TestCase {
 
 			$queryCollection = $queryCollectionFactory->create("User");
 			self::assertInstanceOf(QueryCollectionClass::class, $queryCollection);
+		}
+		finally {
+			Helper::deleteDir($baseDir);
+		}
+	}
+
+	public function testMissingCollectionCanBeCreatedBeforeQueryExecution():void {
+		$baseDir = Helper::getTmpDir();
+		mkdir($baseDir, 0775, true);
+		$driver = new Driver(new Settings(
+			$baseDir,
+			Settings::DRIVER_SQLITE,
+			Settings::SCHEMA_IN_MEMORY,
+		));
+		$factory = new QueryCollectionFactory($driver);
+
+		try {
+			$collection = $factory->create("module.example");
+			self::assertSame($collection, $factory->create("module.example"));
+			mkdir("$baseDir/Module/Example", 0775, true);
+			file_put_contents("$baseDir/Module/Example/selectValue.sql", "SELECT 42 AS value");
+
+			self::assertSame(42, $collection->fetchInt("selectValue"));
+			self::assertSame(42, $collection->selectValue()->current()->getInt("value"));
+			self::assertSame("$baseDir/Module/Example", $collection->getDirectoryPath());
+		}
+		finally {
+			Helper::deleteDir($baseDir);
+		}
+	}
+
+	public function testMissingPhpCollectionPreservesCustomNamespace():void {
+		$baseDir = Helper::getTmpDir();
+		mkdir($baseDir, 0775, true);
+		$driver = new Driver(new Settings(
+			$baseDir,
+			Settings::DRIVER_SQLITE,
+			Settings::SCHEMA_IN_MEMORY,
+		));
+		$factory = new QueryCollectionFactory($driver);
+
+		try {
+			$collection = $factory->create("DeferredExample");
+			$collection->setAppNamespace("DeferredTest\\Query");
+			file_put_contents("$baseDir/DeferredExample.php", <<<'PHP'
+			<?php
+			namespace DeferredTest\Query;
+			class DeferredExample {
+				public function selectValue():string {
+					return "SELECT 42 AS value";
+				}
+			}
+			PHP);
+
+			self::assertSame(42, $collection->fetchInt("selectValue"));
 		}
 		finally {
 			Helper::deleteDir($baseDir);

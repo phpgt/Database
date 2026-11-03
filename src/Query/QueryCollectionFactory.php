@@ -23,6 +23,11 @@ class QueryCollectionFactory {
 			$this->queryCollectionCache[$name] = $this->findQueryCollection(
 				$name,
 				$this->driver,
+			) ?? new DeferredQueryCollection(
+				$name,
+				$this->driver,
+				fn() => $this->findQueryCollection($name, $this->driver)
+					?? throw new QueryCollectionNotFoundException($name),
 			);
 		}
 
@@ -123,29 +128,27 @@ class QueryCollectionFactory {
 		return getcwd();
 	}
 
+	/** @phpstan-impure Filesystem contents can change between calls. */
 	private function findQueryCollection(
 		string $name,
 		Driver $driver,
-	):QueryCollection {
+	):?QueryCollection {
 		$path = $this->locateDirectory($name);
 
 		if($path && is_dir($path)) {
-			$this->queryCollectionCache[$name] = new QueryCollectionDirectory(
+			return new QueryCollectionDirectory(
 				$path,
 				$driver,
 			);
 		}
 		elseif($path && is_file($path)) {
-			$this->queryCollectionCache[$name] = new QueryCollectionClass(
+			return new QueryCollectionClass(
 				$path,
 				$driver,
 			);
 		}
-		else {
-			throw new QueryCollectionNotFoundException($name);
-		}
 
-		return $this->queryCollectionCache[$name];
+		return null;
 	}
 
 }
