@@ -432,6 +432,33 @@ class SqlQueryTest extends TestCase {
 	}
 
 	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathNotExistsProvider")]
+	public function testDynamicBindingsWhereInNestedArrays(
+		string $queryName,
+		string $queryCollectionPath,
+		string $filePath
+	):void {
+		$sql = "select * from orders where createdAt > :startDate and (product_id, customer_id) in ( :__dynamicIn )";
+		file_put_contents($filePath, $sql);
+		$query = new SqlQuery($filePath, $this->driverSingleton());
+		$data = [
+			"startDate" => "2020-01-01",
+			"__dynamicIn" => [
+				[1, 100],
+				[2, 100],
+				[5, 100],
+			],
+		];
+
+		$injectedSql = $query->injectDynamicBindings($sql, $data);
+
+		self::assertSame(
+			"select * from orders where createdAt > :startDate and (product_id, customer_id) in ( (1, 100), (2, 100), (5, 100) )",
+			$injectedSql
+		);
+		self::assertSame(["startDate" => "2020-01-01"], $data);
+	}
+
+	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathNotExistsProvider")]
 	public function testDynamicBindingsOr(
 		string $queryName,
 		string $queryCollectionPath,
