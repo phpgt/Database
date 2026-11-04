@@ -15,12 +15,12 @@ class ResultSetTest extends TestCase {
 	private $fake_data_index = 0;
 
 	public function testCount() {
-		$resultSet = new ResultSet($this->getStatementMock());
+		$resultSet = new ResultSet($this->getStatementStub());
 		self::assertCount(3, $resultSet);
 	}
 
 	public function testCountMidIteration() {
-		$resultSet = new ResultSet($this->getStatementMock());
+		$resultSet = new ResultSet($this->getStatementStub());
 // Subsequent calls to count should not have side effects:
 		self::assertCount(
 			3,
@@ -53,7 +53,7 @@ class ResultSetTest extends TestCase {
 	}
 
 	public function testFirstRowArrayAccess() {
-		$resultSet = new ResultSet($this->getStatementMock());
+		$resultSet = new ResultSet($this->getStatementStub());
 		$firstRow = self::FAKE_DATA[0];
 		$row = $resultSet->fetch();
 		self::assertEquals($firstRow["id"], $row->id);
@@ -61,7 +61,7 @@ class ResultSetTest extends TestCase {
 	}
 
 	public function testIteration() {
-		$resultSet = new ResultSet($this->getStatementMock());
+		$resultSet = new ResultSet($this->getStatementStub());
 		$iterationCount = 0;
 
 		foreach($resultSet as $row) {
@@ -78,18 +78,18 @@ class ResultSetTest extends TestCase {
 	}
 
 	public function testLastInsertId() {
-		$resultSet = new ResultSet($this->getStatementMock(), "123");
+		$resultSet = new ResultSet($this->getStatementStub(), "123");
 		self::assertEquals(123, $resultSet->lastInsertId());
 	}
 
 	public function testCountTwice() {
-		$resultSet = new ResultSet($this->getStatementMock());
+		$resultSet = new ResultSet($this->getStatementStub());
 		$count = count($resultSet);
 		self::assertCount($count, $resultSet);
 	}
 
 	public function testGetFieldList() {
-		$resultSet = new ResultSet($this->getStatementMock());
+		$resultSet = new ResultSet($this->getStatementStub());
 		self::assertSame(
 			["id", "name", "timestamp", "date"],
 			$resultSet->getFieldList()
@@ -97,7 +97,7 @@ class ResultSetTest extends TestCase {
 	}
 
 	public function testGetFieldListFallbackToFirstRow() {
-		$resultSet = new ResultSet($this->getStatementMock(false));
+		$resultSet = new ResultSet($this->getStatementStub(false));
 		self::assertSame(
 			["id", "name", "timestamp", "date"],
 			$resultSet->getFieldList()
@@ -105,7 +105,7 @@ class ResultSetTest extends TestCase {
 	}
 
 	public function testGetFieldListNoRows() {
-		$statement = $this->createMock(PDOStatement::class);
+		$statement = $this->createStub(PDOStatement::class);
 		$statement->method("fetch")->willReturn(null);
 		$statement->method("execute")->willReturn(true);
 		$statement->method("columnCount")->willReturn(0);
@@ -115,7 +115,7 @@ class ResultSetTest extends TestCase {
 	}
 
 	public function testGetFieldListMidIteration() {
-		$resultSet = new ResultSet($this->getStatementMock());
+		$resultSet = new ResultSet($this->getStatementStub());
 		$resultSet->rewind();
 		$resultSet->next();
 
@@ -127,7 +127,7 @@ class ResultSetTest extends TestCase {
 	}
 
 	public function testAccessByRowIndex() {
-		$resultSet = new ResultSet($this->getStatementMock());
+		$resultSet = new ResultSet($this->getStatementStub());
 
 		$rowList = $resultSet->fetchAll();
 
@@ -137,7 +137,7 @@ class ResultSetTest extends TestCase {
 	}
 
 	public function testNoRows() {
-		$statement = $this->createMock(PDOStatement::class);
+		$statement = $this->createStub(PDOStatement::class);
 		$statement->method("fetch")->willReturn(null);
 		$resultSet = new ResultSet($statement);
 
@@ -145,7 +145,7 @@ class ResultSetTest extends TestCase {
 	}
 
 	public function testFetchAll() {
-		$resultSet = new ResultSet($this->getStatementMock());
+		$resultSet = new ResultSet($this->getStatementStub());
 		$rows = $resultSet->fetchAll();
 
 		foreach(self::FAKE_DATA as $index => $fakeValue) {
@@ -158,7 +158,7 @@ class ResultSetTest extends TestCase {
 	}
 
 	public function testAsArray() {
-		$resultSet = new ResultSet($this->getStatementMock());
+		$resultSet = new ResultSet($this->getStatementStub());
 		$array = $resultSet->asArray();
 		foreach($array as $i => $rowArray) {
 			self::assertIsArray($rowArray);
@@ -169,14 +169,14 @@ class ResultSetTest extends TestCase {
 	}
 
 	public function testAsDateTime() {
-		$resultSet = new ResultSet($this->getStatementMock());
+		$resultSet = new ResultSet($this->getStatementStub());
 		$row = $resultSet->fetch();
 		self::assertEquals("1988-04-05 17:24", $row->getDateTime("date")->format("Y-m-d H:i"));
 		self::assertEquals("1988-04-05 17:24", $row->getDateTime("timestamp")->format("Y-m-d H:i"));
 	}
 
-	private function getStatementMock(bool $withMetadata = true):PDOStatement {
-		$statement = $this->createMock(PDOStatement::class);
+	private function getStatementStub(bool $withMetadata = true):PDOStatement {
+		$statement = $this->createStub(PDOStatement::class);
 		$statement->method("fetch")
 			->willReturnCallback([$this, "getNextFakeData"]);
 		$statement->method("execute")
