@@ -7,6 +7,7 @@ use GT\Database\MissingParameterException;
 use GT\Database\Query\PreparedStatementException;
 use GT\Database\Query\QueryNotFoundException;
 use GT\Database\Query\SqlQuery;
+use PHPUnit\Framework\Attributes\DataProviderExternal;
 use PHPUnit\Framework\TestCase;
 use GT\Database\Test\Helper\Helper;
 
@@ -30,7 +31,7 @@ class SqlQueryTest extends TestCase {
 		static::assertTrue($success, "Success inserting fake data");
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathNotExistsProvider")]
+	#[DataProviderExternal(Helper::class, "queryPathNotExistsProvider")]
 	public function testQueryNotFound(
 		string $queryName,
 		string $queryCollectionPath,
@@ -40,7 +41,7 @@ class SqlQueryTest extends TestCase {
 		new SqlQuery($queryPath, $this->driverSingleton());
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathExistsProvider")]
+	#[DataProviderExternal(Helper::class, "queryPathExistsProvider")]
 	public function testQueryFound(
 		string $queryName,
 		string $queryCollectionPath,
@@ -50,7 +51,7 @@ class SqlQueryTest extends TestCase {
 		static::assertFileExists($query->getFilePath());
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathExistsProvider")]
+	#[DataProviderExternal(Helper::class, "queryPathExistsProvider")]
 	public function testBadPreparedStatementThrowsException(
 		string $queryName,
 		string $queryCollectionPath,
@@ -62,7 +63,7 @@ class SqlQueryTest extends TestCase {
 		$query->execute();
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathExistsProvider")]
+	#[DataProviderExternal(Helper::class, "queryPathExistsProvider")]
 	public function testPreparedStatement(
 		string $queryName,
 		string $queryCollectionPath,
@@ -79,7 +80,7 @@ class SqlQueryTest extends TestCase {
 		}
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathExistsProvider")]
+	#[DataProviderExternal(Helper::class, "queryPathExistsProvider")]
 	public function testLastInsertId(
 		string $queryName,
 		string $queryCollectionPath,
@@ -134,7 +135,7 @@ class SqlQueryTest extends TestCase {
 		}
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathExistsProvider")]
+	#[DataProviderExternal(Helper::class, "queryPathExistsProvider")]
 	public function testPlaceholderReplacement(
 		string $queryName,
 		string $queryCollectionPath,
@@ -151,7 +152,7 @@ class SqlQueryTest extends TestCase {
 		static::assertEquals($uuid, $row->testValue);
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathExistsProvider")]
+	#[DataProviderExternal(Helper::class, "queryPathExistsProvider")]
 	public function testPlaceholderReplacementInComments(
 		string $queryName,
 		string $queryCollectionPath,
@@ -208,7 +209,7 @@ class SqlQueryTest extends TestCase {
 		}
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathExistsProvider")]
+	#[DataProviderExternal(Helper::class, "queryPathExistsProvider")]
 	public function testMissingIndexedParametersThrowsHelpfulException(
 		string $queryName,
 		string $queryCollectionPath,
@@ -227,7 +228,7 @@ class SqlQueryTest extends TestCase {
 		$query->execute([1, "one"]);
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathExistsProvider")]
+	#[DataProviderExternal(Helper::class, "queryPathExistsProvider")]
 	public function testMissingNamedParametersThrowsHelpfulException(
 		string $queryName,
 		string $queryCollectionPath,
@@ -248,7 +249,7 @@ class SqlQueryTest extends TestCase {
 		]);
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathExistsProvider")]
+	#[DataProviderExternal(Helper::class, "queryPathExistsProvider")]
 	public function testMissingNamedParametersIgnoreCommentsAndStrings(
 		string $queryName,
 		string $queryCollectionPath,
@@ -270,7 +271,7 @@ class SqlQueryTest extends TestCase {
 		]);
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathNotExistsProvider")]
+	#[DataProviderExternal(Helper::class, "queryPathNotExistsProvider")]
 	public function testSpecialBindingsNoAscDesc(
 		string $queryName,
 		string $queryCollectionPath,
@@ -294,7 +295,7 @@ class SqlQueryTest extends TestCase {
 		self::assertStringContainsString("offset 25", $injectedSql);
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathNotExistsProvider")]
+	#[DataProviderExternal(Helper::class, "queryPathNotExistsProvider")]
 	public function testSpecialBindingsAscDesc(
 		string $queryName,
 		string $queryCollectionPath,
@@ -312,7 +313,7 @@ class SqlQueryTest extends TestCase {
 		self::assertStringContainsString("order by `sortColumn` desc", $injectedSql);
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathNotExistsProvider")]
+	#[DataProviderExternal(Helper::class, "queryPathNotExistsProvider")]
 	public function testSpecialBindingsInClause(
 		string $queryName,
 		string $queryCollectionPath,
@@ -348,7 +349,7 @@ class SqlQueryTest extends TestCase {
 		);
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathNotExistsProvider")]
+	#[DataProviderExternal(Helper::class, "queryPathNotExistsProvider")]
 	public function testDynamicBindingsInsertMultiple(
 		string $queryName,
 		string $queryCollectionPath,
@@ -386,7 +387,7 @@ class SqlQueryTest extends TestCase {
 		self::assertArrayNotHasKey("__dynamicValueSet", $data);
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathNotExistsProvider")]
+	#[DataProviderExternal(Helper::class, "queryPathNotExistsProvider")]
 	public function testDynamicBindingsWhereIn(
 		string $queryName,
 		string $queryCollectionPath,
@@ -409,7 +410,7 @@ class SqlQueryTest extends TestCase {
 		self::assertSame("2020-01-01", $data["startDate"]);
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathNotExistsProvider")]
+	#[DataProviderExternal(Helper::class, "queryPathNotExistsProvider")]
 	public function testDynamicBindingsWhereInStrings(
 		string $queryName,
 		string $queryCollectionPath,
@@ -431,7 +432,7 @@ class SqlQueryTest extends TestCase {
 		self::assertSame("2020-01-01", $data["startDate"]);
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathNotExistsProvider")]
+	#[DataProviderExternal(Helper::class, "queryPathNotExistsProvider")]
 	public function testDynamicBindingsWhereInNestedArrays(
 		string $queryName,
 		string $queryCollectionPath,
@@ -458,7 +459,7 @@ class SqlQueryTest extends TestCase {
 		self::assertSame(["startDate" => "2020-01-01"], $data);
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathNotExistsProvider")]
+	#[DataProviderExternal(Helper::class, "queryPathNotExistsProvider")]
 	public function testDynamicBindingsOr(
 		string $queryName,
 		string $queryCollectionPath,
@@ -483,7 +484,7 @@ class SqlQueryTest extends TestCase {
 		self::assertStringContainsString("where ( (`customerId` = 'cust_105' and `productId` = 1) or (`customerId` = 'cust_450' and `productId` = 941) or (`customerId` = 'cust_450' and `productId` = 433) ) limit 10", $injectedSql);
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathNotExistsProvider")]
+	#[DataProviderExternal(Helper::class, "queryPathNotExistsProvider")]
 	public function testPrepareBindingsWithArray(
 		string $queryName,
 		string $queryCollectionPath,
@@ -521,7 +522,7 @@ class SqlQueryTest extends TestCase {
 	}
 
 	/* */
-	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathExistsProvider")]
+	#[DataProviderExternal(Helper::class, "queryPathExistsProvider")]
 	public function testMultipleStatements(
 		string $queryName,
 		string $queryCollectionPath,
