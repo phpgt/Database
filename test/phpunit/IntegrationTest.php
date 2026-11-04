@@ -2,7 +2,6 @@
 namespace GT\Database\Test;
 
 use DateTime;
-use DateTimeInterface;
 use Exception;
 use GT\Database\Connection\Driver;
 use GT\Database\Connection\Settings;
@@ -393,7 +392,7 @@ class IntegrationTest extends TestCase {
 		);
 
 		$result = $this->db->fetchDateTime("exampleCollection/getLatestTimestamp");
-		self::assertInstanceOf(DateTimeInterface::class, $result);
+		self::assertInstanceOf(DateTime::class, $result);
 	}
 
 	public function testFetchAllDateTime() {
@@ -410,7 +409,7 @@ class IntegrationTest extends TestCase {
 		self::assertCount(3, $result);
 		self::assertIsArray($result);
 		foreach($result as $value) {
-			self::assertInstanceOf(DateTimeInterface::class, $value);
+			self::assertInstanceOf(DateTime::class, $value);
 		}
 	}
 
