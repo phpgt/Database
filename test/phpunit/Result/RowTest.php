@@ -1,8 +1,7 @@
 <?php
 namespace GT\Database\Test\Result;
 
-use DateTimeImmutable;
-use DateTimeInterface;
+use DateTime;
 use GT\Database\Result\Row;
 use PHPUnit\Framework\TestCase;
 
@@ -121,11 +120,44 @@ class RowTest extends TestCase {
 	public function testGetDateTime(array $data) {
 		$row = new Row($data);
 		$dateTime = $row->getDateTime("exampleDateTime");
-		self::assertInstanceOf(DateTimeInterface::class, $dateTime);
+		self::assertInstanceOf(DateTime::class, $dateTime);
 		self::assertEquals(
 			$dateTime->format("Y-m-d H:i:s"),
 			$data["exampleDateTime"]
 		);
+	}
+
+	#[\PHPUnit\Framework\Attributes\DataProvider("timestamps")]
+	public function testGetDateTime_timestamp(string $timestamp):void {
+		$sut = new Row(["date" => $timestamp]);
+		$dateTime = $sut->getDateTime("date");
+
+		self::assertInstanceOf(DateTime::class, $dateTime);
+		self::assertSame((int)$timestamp, $dateTime->getTimestamp());
+	}
+
+	public static function timestamps():iterable {
+		yield "Unix epoch" => ["0"];
+		yield "positive timestamp" => ["576264240"];
+		yield "before Unix epoch" => ["-1"];
+	}
+
+	public function testGetDateTime_nullable():void {
+		$sut = new Row(["date" => null]);
+		self::assertNull($sut->getDateTime("date"));
+		self::assertNull($sut->getDateTime("missing"));
+	}
+
+	public function testGetDateTime_returnsIndependentMutableObjects():void {
+		$sut = new Row(["date" => "1988-04-05 17:24:00"]);
+		$first = $sut->getDateTime("date");
+		$second = $sut->getDateTime("date");
+		self::assertInstanceOf(DateTime::class, $first);
+		self::assertInstanceOf(DateTime::class, $second);
+		self::assertSame($first, $first->modify("+1 day"));
+		self::assertSame("1988-04-06", $first->format("Y-m-d"));
+		self::assertSame("1988-04-05", $second->format("Y-m-d"));
+		self::assertSame("1988-04-05 17:24:00", $sut->getString("date"));
 	}
 
 	public function testGetIntNullable() {
@@ -155,7 +187,7 @@ class RowTest extends TestCase {
 
 				case "exampleDateTime":
 					$timestamp = rand(0, 4260560700);
-					$dateTime = new DateTimeImmutable();
+					$dateTime = new DateTime();
 					$dateTime = $dateTime->setTimestamp($timestamp);
 					$value = $dateTime->format("Y-m-d H:i:s");
 					break;

@@ -1,8 +1,7 @@
 <?php
 namespace GT\Database;
 
-use DateTimeImmutable;
-use DateTimeInterface;
+use DateTime;
 use GT\Database\Result\ResultSet;
 use GT\Database\Result\Row;
 
@@ -49,7 +48,7 @@ trait Fetchable {
 		);
 	}
 
-	public function fetchDateTime(string $queryName, mixed...$bindings):?DateTimeInterface {
+	public function fetchDateTime(string $queryName, mixed...$bindings):?DateTime {
 		return $this->fetchTyped(
 			Type::DATETIME,
 			$queryName,
@@ -93,7 +92,7 @@ trait Fetchable {
 		);
 	}
 
-	/** @return DateTimeInterface[] */
+	/** @return DateTime[] */
 	public function fetchAllDateTime(string $queryName, mixed...$bindings):array {
 		return $this->fetchAllTyped(
 			Type::DATETIME,
@@ -106,7 +105,7 @@ trait Fetchable {
 		string $type,
 		string $queryName,
 		mixed...$bindings
-	):null|string|int|bool|float|DateTimeInterface {
+	):null|string|int|bool|float|DateTime {
 		$row = $this->fetch($queryName, ...$bindings);
 		if($row) {
 			$row->rewind();
@@ -119,7 +118,7 @@ trait Fetchable {
 		return $this->castRow($type, $row);
 	}
 
-	/** @return array<null|string|int|bool|float|DateTimeInterface> */
+	/** @return array<null|string|int|bool|float|DateTime> */
 	protected function fetchAllTyped(
 		string $type,
 		string $queryName,
@@ -138,7 +137,7 @@ trait Fetchable {
 	protected function castRow(
 		string $type,
 		Row $row
-	):null|string|int|bool|float|DateTimeInterface {
+	):null|string|int|bool|float|DateTime {
 		$assocArray = $row->asArray();
 		reset($assocArray);
 		$key = key($assocArray);
@@ -152,7 +151,7 @@ trait Fetchable {
 			Type::BOOL, "boolean" => (bool)$value,
 			Type::INT, "integer" => (int)$value,
 			Type::FLOAT => (float)$value,
-			Type::DATETIME => new DateTimeImmutable($value),
+			Type::DATETIME => new DateTime($value),
 			default => (string)$value,
 		};
 	}
