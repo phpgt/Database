@@ -16,7 +16,7 @@ class DriverTest extends TestCase {
 	protected $initQuery = null;
 
 	public function testGetBaseDirectory() {
-		$settings = $this->getSettingsMock();
+		$settings = $this->getSettingsStub();
 		$driver = new Driver($settings);
 		self::assertEquals(
 			$this->baseDirectory,
@@ -33,7 +33,7 @@ class DriverTest extends TestCase {
 	}
 
 	public function testConstruct_initQueryDefaultForeignKeyCheck() {
-		$settings = $this->getSettingsMock();
+		$settings = $this->getSettingsStub();
 		$driver = new Driver($settings);
 		$connection = $driver->getConnection();
 		$defaultForeignKeysValue = $connection->query("PRAGMA foreign_keys")->fetch()["foreign_keys"];
@@ -44,7 +44,7 @@ class DriverTest extends TestCase {
 		else {
 			$newValue = "ON";
 		}
-		$settings = $this->getSettingsMock(initQuery: "PRAGMA foreign_keys = $newValue");
+		$settings = $this->getSettingsStub(initQuery: "PRAGMA foreign_keys = $newValue");
 		$driver = new Driver($settings);
 		$connection = $driver->getConnection();
 		$actualNewValue = $connection->query("PRAGMA foreign_keys")->fetch()["foreign_keys"];
@@ -57,7 +57,7 @@ class DriverTest extends TestCase {
 	}
 
 	public function testConstruct_initQueryMultipleInitQueries() {
-		$settings = $this->getSettingsMock();
+		$settings = $this->getSettingsStub();
 		$driver = new Driver($settings);
 		$connection = $driver->getConnection();
 		$defaultForeignKeysValue = $connection->query("PRAGMA foreign_keys")->fetch()["foreign_keys"];
@@ -80,7 +80,7 @@ class DriverTest extends TestCase {
 			"PRAGMA foreign_keys = $newForeignKeysValue",
 			"PRAGMA fullfsync = $newFullSyncValue",
 		]);
-		$settings = $this->getSettingsMock(initQuery: $initQuery);
+		$settings = $this->getSettingsStub(initQuery: $initQuery);
 		$driver = new Driver($settings);
 		$connection = $driver->getConnection();
 		$actualNewForeignKeysValue = $connection->query("PRAGMA foreign_keys")->fetch()["foreign_keys"];
@@ -100,15 +100,15 @@ class DriverTest extends TestCase {
 		}
 	}
 
-	protected function getSettingsMock(
-		string $baseDirectory = null,
-		string $connectionName = null,
-		string $connectionString = null,
-		string $username = null,
-		string $password = null,
-		string $initQuery = null,
+	protected function getSettingsStub(
+		?string $baseDirectory = null,
+		?string $connectionName = null,
+		?string $connectionString = null,
+		?string $username = null,
+		?string $password = null,
+		?string $initQuery = null,
 	):Settings {
-		$settings = $this->createMock(Settings::class);
+		$settings = $this->createStub(Settings::class);
 		$settings->method("getBaseDirectory")
 			->willReturn($baseDirectory ?? $this->baseDirectory);
 		$settings->method("getConnectionName")

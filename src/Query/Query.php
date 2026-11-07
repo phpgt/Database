@@ -226,15 +226,25 @@ abstract class Query {
 		}
 
 		foreach($data["__dynamicIn"] as $i => $value) {
-			if(is_string($value)) {
-				$value = str_replace("'", "''", $value);
-				$data["__dynamicIn"][$i] = "'$value'";
-			}
+			$data["__dynamicIn"][$i] = $this->formatDynamicInValue($value);
 		}
 
 		$replacementString = implode(", ", $data["__dynamicIn"]);
 		unset($data["__dynamicIn"]);
 		return str_replace($matches[0], "( $replacementString )", $sql);
+	}
+
+	private function formatDynamicInValue(mixed $value):string {
+		if(is_array($value)) {
+			$values = array_map($this->formatDynamicInValue(...), $value);
+			return "(" . implode(", ", $values) . ")";
+		}
+
+		if(is_string($value)) {
+			return "'" . str_replace("'", "''", $value) . "'";
+		}
+
+		return (string)$value;
 	}
 
 	/** @param array<string, mixed> $data */

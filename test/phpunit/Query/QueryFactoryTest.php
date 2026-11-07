@@ -315,7 +315,7 @@ class QueryFactoryTest extends TestCase {
 		mkdir($queryDirectory, 0775, true);
 		file_put_contents("$queryDirectory/users.sql", "select 1");
 
-		$driver = $this->createMock(Driver::class);
+		$driver = $this->createStub(Driver::class);
 		$driver->method("getConnection")
 			->willThrowException(
 				new \InvalidArgumentException("Database [reporting] not configured")
@@ -342,7 +342,7 @@ class QueryFactoryTest extends TestCase {
 		mkdir($queryDirectory, 0775, true);
 		file_put_contents("$queryDirectory/users.sql", "select 1");
 
-		$driver = $this->createMock(Driver::class);
+		$driver = $this->createStub(Driver::class);
 		$driver->method("getConnection")
 			->willThrowException(new \InvalidArgumentException("Unexpected error"));
 
