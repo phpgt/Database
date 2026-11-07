@@ -239,9 +239,11 @@ abstract class Query {
 			$values = array_map($this->formatDynamicInValue(...), $value);
 			return "(" . implode(", ", $values) . ")";
 		}
+
 		if(is_string($value)) {
 			return "'" . str_replace("'", "''", $value) . "'";
 		}
+
 		return (string)$value;
 	}
 
