@@ -2,8 +2,31 @@
 namespace GT\Database\Test\Integration\Connection;
 
 use PHPUnit\Framework\TestCase;
+use GT\Database\Connection\DefaultSettings;
+use GT\Database\Connection\Driver;
+use GT\Database\DatabaseException;
+use PDOException;
 
 class DriverTest extends TestCase {
+	public function testConstruct_preservesConnectionFailuresWhenTheDriverIsInstalled():void {
+		$file = tempnam(sys_get_temp_dir(), "database-not-directory-");
+		$settings = (new DefaultSettings())->withSchema("$file/database.sqlite");
+
+		try {
+			$sut = new Driver($settings);
+			self::fail("Expected the database file to be inaccessible");
+		}
+		catch(DatabaseException $exception) {
+			self::assertInstanceOf(PDOException::class, $exception->getPrevious());
+			self::assertStringContainsString("open", $exception->getMessage());
+			self::assertStringNotContainsString("SQLSTATE", $exception->getMessage());
+			self::assertSame($exception->getPrevious()->getCode(), $exception->getCode());
+		}
+		finally {
+			unlink($file);
+		}
+	}
+
 	public function testConstruct_mysqlWithoutExtensionReportsAnActionableError():void {
 		$autoload = var_export(dirname(__DIR__, 3) . "/vendor/autoload.php", true);
 		$script = "require $autoload; " . <<<'PHP'

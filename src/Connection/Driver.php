@@ -91,7 +91,6 @@ class Driver {
 					. $this->settings->getPort() . "?";
 			}
 
-
 			throw new DatabaseException($message, $code, $exception);
 		}
 
