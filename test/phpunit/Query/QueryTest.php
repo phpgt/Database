@@ -53,7 +53,7 @@ class QueryTest extends TestCase {
 			"dev_pass",
 		);
 		self::expectException(DatabaseException::class);
-		self::expectExceptionMessage("Could not find driver for CodyDB - please ensure you have the package installed");
+		self::expectExceptionMessage("Your PHP installation does not have PDO's CodyDB driver installed.");
 		new SqlQuery($queryPath, new Driver($mysqlSettings));
 	}
 }

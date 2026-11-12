@@ -84,6 +84,15 @@ $userName = $db->fetchString("user/getUsernameById", 105);
 [wiki-config]: https://www.php.gt/docs/database/config
 [wiki-type-safety]: https://www.php.gt/docs/database/type-safety
 
+## Missing PDO drivers
+
+Database checks that the configured PDO driver is available before preparing
+driver-specific options or connecting. If it is missing,
+`MissingDriverException` identifies the driver and links to the
+[runtime and installation guide][pdo-guide].
+
+[pdo-guide]: https://github.com/phpgt/Database/wiki/Missing-PDO-drivers
+
 # Proudly sponsored by
 
 [JetBrains Open Source sponsorship program](https://www.jetbrains.com/community/opensource/)

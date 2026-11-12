@@ -100,6 +100,19 @@ class DriverTest extends TestCase {
 		}
 	}
 
+	public function testConstruct_missingDriverFailsBeforeReadingConnectionDetails():void {
+		$settings = $this->createMock(\GT\Database\Connection\SettingsInterface::class);
+		$settings->expects(self::once())->method("getDriver")->willReturn("phpgt-unavailable-driver");
+		$settings->expects(self::never())->method("getConnectionString");
+		$settings->expects(self::never())->method("getUsername");
+		$settings->expects(self::never())->method("getPassword");
+		$this->expectException(\GT\Database\Connection\MissingDriverException::class);
+		$this->expectExceptionMessage("PDO's phpgt-unavailable-driver driver installed");
+		$this->expectExceptionMessageMatches("#https://www\\.php\\.gt/docs/Database/Missing-PDO-drivers/#");
+
+		$sut = new Driver($settings);
+	}
+
 	protected function getSettingsStub(
 		?string $baseDirectory = null,
 		?string $connectionName = null,
@@ -109,6 +122,7 @@ class DriverTest extends TestCase {
 		?string $initQuery = null,
 	):Settings {
 		$settings = $this->createStub(Settings::class);
+		$settings->method("getDriver")->willReturn(Settings::DRIVER_SQLITE);
 		$settings->method("getBaseDirectory")
 			->willReturn($baseDirectory ?? $this->baseDirectory);
 		$settings->method("getConnectionName")

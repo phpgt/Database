@@ -28,6 +28,15 @@ class Driver {
 
 	public function __construct(SettingsInterface $settings) {
 		$this->settings = $settings;
+		$driver = $settings->getDriver();
+		if(!in_array($driver, PDO::getAvailableDrivers(), true)) {
+			throw new MissingDriverException(
+				"Your PHP installation does not have PDO's $driver driver installed. "
+				. "Enable the driver in the PHP runtime running this application. "
+				. "https://www.php.gt/docs/Database/Missing-PDO-drivers/"
+			);
+		}
+
 		$this->connect();
 	}
 
@@ -80,13 +89,6 @@ class Driver {
 					. $this->settings->getHost()
 					. " on port "
 					. $this->settings->getPort() . "?";
-			}
-			elseif($code === 0) {
-				if($message === "could not find driver") {
-					$message = "Could not find driver for "
-						. $this->settings->getDriver()
-						. " - please ensure you have the package installed";
-				}
 			}
 
 			throw new DatabaseException($message, $code, $exception);
