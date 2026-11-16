@@ -180,25 +180,25 @@
         },
         {
             "name": "phpgt/config",
-            "version": "v1.3.0",
+            "version": "v1.3.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/phpgt/Config.git",
-                "reference": "5d644af3fdc35bc3c648868ae670ea4cd162937a"
+                "reference": "cf62c50c744516a01542ab5643ea54dbf525e908"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpgt/Config/zipball/5d644af3fdc35bc3c648868ae670ea4cd162937a",
-                "reference": "5d644af3fdc35bc3c648868ae670ea4cd162937a",
+                "url": "https://api.github.com/repos/phpgt/Config/zipball/cf62c50c744516a01542ab5643ea54dbf525e908",
+                "reference": "cf62c50c744516a01542ab5643ea54dbf525e908",
                 "shasum": ""
             },
             "require": {
                 "magicalex/write-ini-file": "v1.2.4",
                 "php": ">=8.3",
-                "phpgt/typesafegetter": "^v1.2"
+                "phpgt/typesafegetter": "^1.3"
             },
             "require-dev": {
-                "phpmd/phpmd": "^2.15",
+                "phpmd/phpmd": "^2.15 || ^3.0",
                 "phpstan/phpstan": "^2.1",
                 "phpunit/phpunit": "^12.4",
                 "squizlabs/php_codesniffer": "^4.0"
@@ -226,7 +226,7 @@
             "description": "Manage configuration with ini files and environment variables.",
             "support": {
                 "issues": "https://github.com/phpgt/Config/issues",
-                "source": "https://github.com/phpgt/Config/tree/v1.3.0"
+                "source": "https://github.com/phpgt/Config/tree/v1.3.1"
             },
             "funding": [
                 {
@@ -234,7 +234,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-06-29T20:06:02+00:00"
+            "time": "2026-11-11T10:42:42+00:00"
         },
         {
             "name": "phpgt/daemon",
