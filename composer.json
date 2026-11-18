@@ -9,7 +9,8 @@
 		"phpgt/config": "^1.3",
 		"phpgt/cli": "^2.0",
 		"greenlion/php-sql-parser": "^4.6 || ^5.0",
-		"phpgt/sqlbuilder": "^1.1"
+		"phpgt/sqlbuilder": "^1.1",
+		"phpgt/json": "^2.3.2"
 	},
 
 	"require-dev": {

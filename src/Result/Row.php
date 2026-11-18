@@ -2,6 +2,9 @@
 namespace GT\Database\Result;
 
 use DateTime;
+use GT\Json\JSONDecodeException;
+use GT\Json\JSONObject;
+use GT\Json\JSONObjectBuilder;
 use Iterator;
 
 /** @implements Iterator<string, string> */
@@ -45,6 +48,19 @@ class Row implements Iterator {
 
 	public function getBool(string $columnName):?bool {
 		return $this->getAsNullablePrimitive($columnName, "bool");
+	}
+
+	/**
+	 * Missing columns and SQL NULL return null; JSON null remains a JSON value.
+	 * @throws JSONDecodeException
+	 */
+	public function getJson(string $columnName):?JSONObject {
+		$value = $this->getString($columnName);
+		if(is_null($value)) {
+			return null;
+		}
+
+		return new JSONObjectBuilder()->fromJsonString($value);
 	}
 
 	public function getDateTime(string $columnName):?DateTime {
