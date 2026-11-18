@@ -3,10 +3,78 @@ namespace GT\Database\Test\Result;
 
 use DateTime;
 use GT\Database\Result\Row;
+use GT\Json\JSONDecodeException;
+use GT\Json\JSONKvpObject;
+use GT\Json\JSONPrimitive\JSONArrayPrimitive;
+use GT\Json\JSONPrimitive\JSONBoolPrimitive;
+use GT\Json\JSONPrimitive\JSONFloatPrimitive;
+use GT\Json\JSONPrimitive\JSONIntPrimitive;
+use GT\Json\JSONPrimitive\JSONNullPrimitive;
+use GT\Json\JSONPrimitive\JSONStringPrimitive;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class RowTest extends TestCase {
-	#[\PHPUnit\Framework\Attributes\DataProvider("data_getTestRow")]
+	public function testGetJsonObject():void {
+		$value = '{"name":"Example","count":3,"enabled":true,"tags":["one","two"]}';
+		$row = new Row(["settings" => $value]);
+		$json = $row->getJson("settings");
+
+		self::assertInstanceOf(JSONKvpObject::class, $json);
+		self::assertSame("Example", $json->getString("name"));
+		self::assertSame(3, $json->getInt("count"));
+		self::assertTrue($json->getBool("enabled"));
+		self::assertSame(["one", "two"], $json->getArray("tags", "string"));
+		self::assertSame($value, $row->getString("settings"));
+	}
+
+	public function testGetJsonEmptyObject():void {
+		$row = new Row(["settings" => "{}"]);
+		self::assertInstanceOf(JSONKvpObject::class, $row->getJson("settings"));
+	}
+
+	#[DataProvider("jsonPrimitives")]
+	public function testGetJsonPrimitive(string $value, string $type, mixed $expected):void {
+		$row = new Row(["value" => $value]);
+		$json = $row->getJson("value");
+
+		self::assertInstanceOf($type, $json);
+		self::assertSame($expected, $json->getPrimitiveValue());
+	}
+
+	public static function jsonPrimitives():iterable {
+		yield "array" => ['["one","two"]', JSONArrayPrimitive::class, ["one", "two"]];
+		yield "empty array" => ["[]", JSONArrayPrimitive::class, []];
+		yield "integer" => ["123", JSONIntPrimitive::class, 123];
+		yield "zero" => ["0", JSONIntPrimitive::class, 0];
+		yield "float" => ["1.25", JSONFloatPrimitive::class, 1.25];
+		yield "true" => ["true", JSONBoolPrimitive::class, true];
+		yield "false" => ["false", JSONBoolPrimitive::class, false];
+		yield "string" => ['"example"', JSONStringPrimitive::class, "example"];
+		yield "empty string" => ['""', JSONStringPrimitive::class, ""];
+		yield "JSON null" => ["null", JSONNullPrimitive::class, null];
+	}
+
+	public function testGetJsonNullable():void {
+		$row = new Row(["value" => null]);
+		self::assertNull($row->getJson("value"));
+		self::assertNull($row->getJson("missing"));
+	}
+
+	#[DataProvider("invalidJson")]
+	public function testGetJsonInvalid(string $value):void {
+		$row = new Row(["value" => $value]);
+		self::expectException(JSONDecodeException::class);
+		$row->getJson("value");
+	}
+
+	public static function invalidJson():iterable {
+		yield "empty column" => [""];
+		yield "malformed JSON" => ['{"incomplete":'];
+		yield "invalid UTF-8" => ["\"\xB1\""];
+	}
+
+	#[DataProvider("data_getTestRow")]
 	public function testFieldAccess(array $data) {
 		$row = new Row($data);
 
@@ -68,7 +136,7 @@ class RowTest extends TestCase {
 		);
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProvider("data_getTestRow")]
+	#[DataProvider("data_getTestRow")]
 	public function testIteration(array $data) {
 		$row = new Row($data);
 
@@ -82,7 +150,7 @@ class RowTest extends TestCase {
 		}
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProvider("data_getTestRow")]
+	#[DataProvider("data_getTestRow")]
 	public function testGetString(array $data) {
 		$row = new Row($data);
 		foreach($data as $key => $expected) {
@@ -92,7 +160,7 @@ class RowTest extends TestCase {
 		}
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProvider("data_getTestRow")]
+	#[DataProvider("data_getTestRow")]
 	public function testGetInt(array $data) {
 		$row = new Row($data);
 		$id = $row->getInt("id");
@@ -100,7 +168,7 @@ class RowTest extends TestCase {
 		self::assertSame((int)$data["id"], $id);
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProvider("data_getTestRow")]
+	#[DataProvider("data_getTestRow")]
 	public function testGetFloat(array $data) {
 		$row = new Row($data);
 		$float = $row->getFloat("exampleFloat");
@@ -108,7 +176,7 @@ class RowTest extends TestCase {
 		self::assertSame(round($data["exampleFloat"], 4), round($float, 4));
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProvider("data_getTestRow")]
+	#[DataProvider("data_getTestRow")]
 	public function testGetBool(array $data) {
 		$row = new Row($data);
 		$bool = $row->getBool("exampleBool");
@@ -116,7 +184,7 @@ class RowTest extends TestCase {
 		self::assertSame((bool)$data["exampleBool"], $bool);
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProvider("data_getTestRow")]
+	#[DataProvider("data_getTestRow")]
 	public function testGetDateTime(array $data) {
 		$row = new Row($data);
 		$dateTime = $row->getDateTime("exampleDateTime");
@@ -127,7 +195,7 @@ class RowTest extends TestCase {
 		);
 	}
 
-	#[\PHPUnit\Framework\Attributes\DataProvider("timestamps")]
+	#[DataProvider("timestamps")]
 	public function testGetDateTime_timestamp(string $timestamp):void {
 		$sut = new Row(["date" => $timestamp]);
 		$dateTime = $sut->getDateTime("date");
