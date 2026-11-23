@@ -60,7 +60,7 @@ class Row implements Iterator {
 			return null;
 		}
 
-		return new JSONObjectBuilder()->fromJsonString($value);
+		return (new JSONObjectBuilder())->fromJsonString($value);
 	}
 
 	public function getDateTime(string $columnName):?DateTime {
