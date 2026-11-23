@@ -1,5 +1,3 @@
-<img src="logo.png" alt="Database logic organisation." align="right" />
-
 # Database API organisation.
 
 Encloses your application's database scripts within a simple and standardised interface, separating database access from your application logic.

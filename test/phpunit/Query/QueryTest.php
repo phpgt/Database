@@ -1,15 +1,58 @@
 <?php
 namespace GT\Database\Test\Query;
 
+use DateTimeImmutable;
 use GT\Database\Connection\Driver;
 use GT\Database\Connection\DefaultSettings;
 use GT\Database\Connection\Settings;
 use GT\Database\DatabaseException;
+use GT\Database\Query\Query;
 use GT\Database\Query\QueryNotFoundException;
 use GT\Database\Query\SqlQuery;
+use GT\Json\JSONObjectBuilder;
 use PHPUnit\Framework\TestCase;
+use Stringable;
 
 class QueryTest extends TestCase {
+	public function testPrepareBindingsStringable():void {
+		$query = $this->getMockBuilder(Query::class)->onlyMethods(["getSql"])->getMock();
+		$query->expects(self::never())->method("getSql");
+		$value = new class implements Stringable {
+			public function __toString():string {
+				return "example's value";
+			}
+		};
+
+		self::assertSame(["value" => "example's value"], $query->prepareBindings(["value" => $value]));
+		self::assertSame(["example's value"], $query->prepareBindings([$value]));
+	}
+
+	public function testPrepareBindingsJsonObject():void {
+		$query = $this->getMockBuilder(Query::class)->onlyMethods(["getSql"])->getMock();
+		$query->expects(self::never())->method("getSql");
+		$json = (new JSONObjectBuilder())->fromJsonString('{"tags":["one","two"]}');
+
+		self::assertSame(
+			["settings" => '{"tags":["one","two"]}'],
+			$query->prepareBindings(["settings" => $json]),
+		);
+	}
+
+	public function testPrepareBindingsDateTimeFormattingTakesPrecedence():void {
+		$query = $this->getMockBuilder(Query::class)->onlyMethods(["getSql"])->getMock();
+		$query->expects(self::never())->method("getSql");
+		$date = new class("2026-11-18 12:34:56") extends DateTimeImmutable implements Stringable {
+			public function __toString():string {
+				return "custom date representation";
+			}
+		};
+
+		self::assertSame(
+			["date" => "2026-11-18 12:34:56"],
+			$query->prepareBindings(["date" => $date]),
+		);
+	}
+
 	#[\PHPUnit\Framework\Attributes\DataProviderExternal(\GT\Database\Test\Helper\Helper::class, "queryPathNotExistsProvider")]
 	public function testConstructionQueryPathNotExists(
 		string $queryName,

@@ -9,7 +9,7 @@ use PDO;
 use PDOException;
 use PDOStatement;
 use PHPSQLParser\lexer\PHPSQLLexer;
-
+use Stringable;
 
 /**
  * @SuppressWarnings("PHPMD.ExcessiveClassComplexity")
@@ -347,6 +347,9 @@ abstract class Query {
 			}
 			if($value instanceof DateTimeInterface) {
 				$bindings[$key] = $value->format("Y-m-d H:i:s");
+			}
+			elseif($value instanceof Stringable) {
+				$bindings[$key] = (string)$value;
 			}
 			if(is_array($value)) {
 				foreach($value as $i => $innerValue) {
